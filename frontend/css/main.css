@@ -1,0 +1,263 @@
+/* css/main.css — KOSIEC Design System & Layout */
+:root {
+  --green: #1A4731;
+  --green-mid: #22603F;
+  --green-light: #E8F4EE;
+  --gold: #C9A84C;
+  --gold-light: #F0E0A8;
+  --ivory: #F8F5ED;
+  --slate: #2D3748;
+  --slate-light: #4A5568;
+  --white: #FFFFFF;
+  --red: #C0392B;
+  --border: #D8E4DC;
+  --shadow: 0 4px 24px rgba(26,71,49,.10);
+  --radius: 8px;
+  --font-display: 'Playfair Display', Georgia, serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+  --api-base: 'http://localhost:5000';
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body { font-family: var(--font-body); color: var(--slate); background: var(--white); line-height: 1.6; }
+a { color: inherit; text-decoration: none; }
+img { max-width: 100%; display: block; }
+button { cursor: pointer; font-family: var(--font-body); }
+
+/* ── Typography ───────────────────────────────────────────── */
+h1,h2,h3,h4 { line-height: 1.2; }
+.eyebrow {
+  display: inline-block; background: var(--green-light);
+  color: var(--green); font-size: 11px; font-weight: 700;
+  letter-spacing: 1.5px; text-transform: uppercase;
+  padding: 5px 14px; border-radius: 20px; margin-bottom: 14px;
+}
+.section-header { text-align: center; margin-bottom: 52px; }
+.section-header p { color: var(--slate-light); font-size: 16px; max-width: 600px; margin: 0 auto; line-height: 1.7; }
+.header-box {
+  display: inline-block; background: var(--green-light); border-radius: 14px;
+  padding: 20px 36px; margin: 0 auto 16px; text-align: center;
+}
+.header-box .eyebrow { background: transparent; padding: 0; margin: 0 0 8px; }
+.header-box h2 {
+  font-family: var(--font-display); font-size: clamp(1.6rem, 3.2vw, 2.4rem);
+  font-weight: 800; color: var(--green); margin: 0; line-height: 1.25;
+}
+
+.gallery-hero-sub {
+  font-family: var(--font-display); font-style: italic; font-weight: 600;
+  font-size: clamp(1.3rem, 2.6vw, 1.7rem); color: var(--green);
+  max-width: 720px; margin: 0 auto; line-height: 1.6; letter-spacing: .2px;
+}
+
+/* ── Layout ───────────────────────────────────────────────── */
+.section { padding: 72px 5%; }
+.section-inner { max-width: 1200px; margin: 0 auto; }
+
+/* ── Buttons ──────────────────────────────────────────────── */
+.btn-primary {
+  background: var(--gold); color: var(--green);
+  padding: 13px 28px; border-radius: var(--radius);
+  font-weight: 700; font-size: 14px; transition: .2s; border: none;
+  display: inline-flex; align-items: center; gap: 8px;
+}
+.btn-primary:hover { background: #b8933e; transform: translateY(-1px); }
+.btn-outline {
+  border: 2px solid var(--green); color: var(--green);
+  padding: 11px 26px; border-radius: var(--radius);
+  font-weight: 600; font-size: 14px; transition: .2s; background: transparent;
+  display: inline-flex; align-items: center; gap: 8px;
+}
+.btn-outline:hover { background: var(--green); color: var(--white); }
+.btn-danger {
+  background: var(--red); color: var(--white); padding: 8px 16px;
+  border-radius: var(--radius); font-weight: 600; font-size: 13px; border: none;
+}
+
+/* ── State indicators ────────────────────────────────────── */
+.loading { text-align: center; padding: 48px; color: var(--slate-light); font-size: 15px; }
+.loading::before { content: '⏳ '; }
+.empty-state { text-align: center; padding: 48px; color: var(--slate-light); font-style: italic; }
+.error-state { text-align: center; padding: 24px; color: var(--red); }
+
+/* ── Badges ───────────────────────────────────────────────── */
+.badge-active  { background: #d4edda; color: #155724; padding: 3px 9px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+.badge-pending { background: #fff3cd; color: #856404; padding: 3px 9px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+.badge-draft   { background: #e2e8f0; color: #4a5568; padding: 3px 9px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+
+/* ── Chairman Section ─────────────────────────────────────── */
+.chairman-card {
+  display: grid; grid-template-columns: auto 1fr; gap: 48px;
+  align-items: center; background: var(--ivory); border-radius: 16px;
+  padding: 48px; border: 1px solid var(--border); max-width: 900px; margin: 0 auto;
+}
+.chairman-photo-wrap { text-align: center; }
+.chairman-photo {
+  width: 180px; height: 180px; border-radius: 50%; object-fit: cover;
+  border: 4px solid var(--gold); box-shadow: 0 8px 32px rgba(26,71,49,.2);
+}
+.chairman-photo.large { width: 220px; height: 220px; }
+.chairman-photo-placeholder {
+  width: 180px; height: 180px; border-radius: 50%;
+  background: var(--green); display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display); font-size: 3rem; font-weight: 900;
+  color: var(--gold); border: 4px solid var(--gold);
+}
+.chairman-photo-placeholder.large { width: 220px; height: 220px; }
+.chairman-info h2 { font-family: var(--font-display); color: var(--green); font-size: 1.8rem; margin-bottom: 6px; }
+.chairman-role { color: var(--gold); font-weight: 700; font-size: 14px; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 16px; }
+.chairman-info p { color: var(--slate-light); font-size: 15px; line-height: 1.75; margin-bottom: 14px; }
+.chairman-meta { font-size: 13px; color: var(--slate-light); }
+
+/* Chairman full card (team page) */
+.chairman-full-card {
+  display: grid; grid-template-columns: 260px 1fr; gap: 48px;
+  background: linear-gradient(135deg, var(--green) 0%, #0e2e1e 100%);
+  border-radius: 16px; padding: 48px; margin-bottom: 48px; align-items: center;
+}
+.chairman-full-card .eyebrow { background: rgba(201,168,76,.2); color: var(--gold-light); }
+.chairman-full-card h2 { color: var(--white); font-family: var(--font-display); font-size: 2rem; margin-bottom: 8px; }
+.chairman-role-badge {
+  display: inline-block; background: var(--gold); color: var(--green);
+  padding: 4px 14px; border-radius: 20px; font-size: 12px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .5px; margin-bottom: 16px;
+}
+.chairman-full-card p { color: rgba(255,255,255,.8); font-size: 15px; line-height: 1.75; }
+.chairman-details { margin-top: 16px; display: flex; flex-direction: column; gap: 6px; }
+.chairman-details > div { color: rgba(255,255,255,.7); font-size: 13px; }
+
+/* ── Team grid ────────────────────────────────────────────── */
+.team-grid-inner { display: grid; grid-template-columns: repeat(4,1fr); gap: 24px; }
+.team-card { text-align: center; }
+.team-photo-wrap { margin-bottom: 14px; }
+.team-photo-img { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; margin: 0 auto; border: 3px solid var(--border); }
+.team-photo {
+  width: 100px; height: 100px; border-radius: 50%; margin: 0 auto;
+  background: linear-gradient(135deg, var(--green), #0e2e1e);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display); font-size: 1.8rem; font-weight: 900;
+  color: var(--gold); border: 3px solid var(--border);
+}
+.team-card h3 { font-family: var(--font-display); font-size: 1rem; color: var(--green); margin-bottom: 4px; }
+.team-card .team-role { font-size: 12px; color: var(--gold); font-weight: 600; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; }
+.team-card p { font-size: 13px; color: var(--slate-light); }
+
+/* ── Article modal ────────────────────────────────────────── */
+.modal-overlay {
+  display: none; position: fixed; inset: 0; background: rgba(0,0,0,.6);
+  z-index: 3000; align-items: flex-start; justify-content: center;
+  padding: 60px 20px; overflow-y: auto;
+}
+.modal-overlay.open { display: flex; }
+.modal-box {
+  background: var(--white); border-radius: 12px; max-width: 800px; width: 100%;
+  padding: 40px; position: relative;
+}
+.modal-close {
+  position: absolute; top: 16px; right: 16px;
+  background: none; border: none; font-size: 24px; color: var(--slate-light); cursor: pointer;
+}
+.modal-date { font-size: 13px; color: var(--slate-light); margin-bottom: 20px; }
+.modal-box h2 { font-family: var(--font-display); color: var(--green); font-size: 1.6rem; margin-bottom: 8px; }
+#modal-content { color: var(--slate); font-size: 15px; line-height: 1.8; }
+#modal-content p { margin-bottom: 14px; }
+
+/* ── Admin photo upload ───────────────────────────────────── */
+.admin-photo-section { background: var(--ivory); border-radius: 12px; padding: 24px; margin-bottom: 24px; }
+.admin-photo-section h4 { font-family: var(--font-display); color: var(--green); margin-bottom: 14px; }
+.current-photo { margin-bottom: 12px; }
+
+/* ── Form elements ────────────────────────────────────────── */
+.form-group { margin-bottom: 20px; }
+.form-group label { display: block; font-size: 13px; font-weight: 600; color: var(--green); margin-bottom: 7px; text-transform: uppercase; letter-spacing: .5px; }
+.form-group input,
+.form-group select,
+.form-group textarea {
+  width: 100%; padding: 12px 16px; border: 1.5px solid var(--border);
+  border-radius: var(--radius); font-family: var(--font-body); font-size: 14px;
+  color: var(--slate); background: var(--white); transition: .2s;
+}
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus { outline: none; border-color: var(--green); box-shadow: 0 0 0 3px rgba(26,71,49,.1); }
+.form-group textarea { resize: vertical; min-height: 120px; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.form-success { display: none; background: #d4edda; border: 1px solid #c3e6cb; color: #155724; padding: 14px; border-radius: var(--radius); margin-top: 12px; text-align: center; font-size: 14px; }
+.form-error  { display: none; background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; padding: 14px; border-radius: var(--radius); margin-top: 12px; font-size: 14px; }
+
+/* ── Gallery ──────────────────────────────────────────────── */
+.gallery-grid { display: flex; flex-direction: column; gap: 20px; }
+.gallery-group {
+  border: 1px solid var(--border, #e2e2e2); border-radius: var(--radius);
+  overflow: hidden; background: var(--white);
+}
+.gallery-group-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 22px; cursor: pointer; background: var(--green-light);
+  color: var(--green); font-family: var(--font-display); font-weight: 700; font-size: 16px;
+}
+.gallery-toggle { transition: transform .25s ease; }
+.gallery-group.open .gallery-toggle { transform: rotate(180deg); }
+.gallery-group-body {
+  display: grid; grid-template-columns: repeat(5, 1fr);
+  gap: 14px; padding: 20px;
+}
+.gallery-item {
+  width: 100%; height: 220px; border-radius: var(--radius);
+  overflow: hidden; position: relative; cursor: pointer; box-shadow: var(--shadow);
+  transition: transform .2s ease;
+}
+.gallery-item:hover { transform: translateY(-3px); }
+.gallery-item img, .gallery-item .gallery-media-frame { width: 100%; height: 100%; object-fit: cover; border: none; display: block; }
+.gallery-item .gallery-placeholder {
+  width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center;
+  justify-content: center; background: var(--ivory); color: var(--slate-light); font-size: 32px; text-align: center; gap: 6px;
+}
+.gallery-item .gallery-caption {
+  position: absolute; left: 0; right: 0; bottom: 0; padding: 8px 10px;
+  background: linear-gradient(0deg, rgba(0,0,0,.75), transparent);
+  color: var(--white); font-size: 12px; line-height: 1.35;
+  max-height: 100%; overflow: hidden;
+}
+.gallery-item.video-item::before {
+  content: '▶'; position: absolute; top: 10px; right: 10px; z-index: 1;
+  background: rgba(0,0,0,.55); color: var(--white); width: 28px; height: 28px;
+  border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px;
+}
+
+.gallery-modal {
+  display: none; position: fixed; inset: 0; background: rgba(15,25,20,.85);
+  z-index: 1000; align-items: center; justify-content: center; padding: 24px;
+}
+.gallery-modal.open { display: flex; }
+.gallery-modal-box {
+  background: var(--white); border-radius: var(--radius); max-width: 720px; width: 100%;
+  max-height: 90vh; overflow-y: auto; position: relative;
+}
+.gallery-modal-close {
+  position: absolute; top: 10px; right: 10px; z-index: 1; background: rgba(0,0,0,.55);
+  color: var(--white); border: none; width: 32px; height: 32px; border-radius: 50%; font-size: 16px;
+}
+.gallery-modal-image { width: 100%; max-height: 60vh; object-fit: contain; background: #0e2e1e; display: block; border: none; }
+.gallery-modal-title { font-family: var(--font-display); color: var(--green); font-size: 1.2rem; margin: 18px 22px 6px; }
+.gallery-modal-caption { color: var(--slate-light); font-size: 14px; margin: 0 22px 20px; line-height: 1.6; }
+
+/* ── Responsive ───────────────────────────────────────────── */
+@media (max-width: 1100px) {
+  .gallery-group-body { grid-template-columns: repeat(3, 1fr); }
+}
+@media (max-width: 900px) {
+  .chairman-card { grid-template-columns: 1fr; text-align: center; gap: 24px; }
+  .chairman-full-card { grid-template-columns: 1fr; text-align: center; }
+  .team-grid-inner { grid-template-columns: 1fr 1fr; }
+  .form-row { grid-template-columns: 1fr; }
+  .gallery-group-body { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 580px) {
+  .section { padding: 48px 5%; }
+  .team-grid-inner { grid-template-columns: 1fr 1fr; }
+  .chairman-full-card { padding: 28px; }
+  .gallery-group-body { grid-template-columns: 1fr; }
+  .gallery-item { height: 160px; }
+}
