@@ -766,25 +766,16 @@ window.load_admin = async function () {
   const user = Auth.getUser();
   setText('admin-username', user?.fullName || 'Admin');
 
-  // Load dashboard stats
-  try {
-    const [electionsRes, resultsRes, newsRes, inquiriesRes] = await Promise.all([
-      api.elections.getAll(),
-      api.results.getAll(),
-      api.news.getAll(),
-      api.inquiries.getAll(),
-    ]);
-    setText('admin-stat-elections', electionsRes.count || 0);
-    setText('admin-stat-results',   resultsRes.count   || 0);
-    setText('admin-stat-news',      newsRes.count      || 0);
-    setText('admin-stat-inquiries',
-      (inquiriesRes.data || []).filter(i => i.status === 'new').length
-    );
+  applyRoleBasedAdminVisibility();
 
-    // Render recent inquiries
+  // "Recent Inquiries" is visible to admin and staff too, so it's fetched
+  // on its own rather than inside the super_admin-only stats Promise.all below.
+  try {
+    const inquiriesRes = await api.inquiries.getAll();
+    setText('admin-stat-inquiries', (inquiriesRes.data || []).filter(i => i.status === 'new').length);
     renderAdminInquiries((inquiriesRes.data || []).slice(0, 8));
   } catch (err) {
-    console.warn('[admin] Dashboard load error:', err.message);
+    console.warn('[admin] Inquiries load error:', err.message);
   }
 
   // Load photo upload UI for chairman
@@ -799,20 +790,126 @@ window.load_admin = async function () {
   // Load gallery management list
   loadAdminGalleryList();
 
-  // Load elections/candidates/results management UI
-  initPartyDropdown();
-  loadLGAsIntoAdminSelects();
-  loadAdminElections();
-  loadAdminResultsList();
-
   // Load publications & news/notice management lists
   loadAdminDownloadsList();
   loadAdminNewsList();
 
-  // Load admin activity / login log
-  applyActivityLogVisibility();
-  loadAdminLogSummary();
-  loadAdminLogTable();
+  if (Auth.isSuperAdmin()) {
+    // Dashboard stats (elections/results counts — super_admin only section)
+    try {
+      const [electionsRes, resultsRes, newsRes] = await Promise.all([
+        api.elections.getAll(),
+        api.results.getAll(),
+        api.news.getAll(),
+      ]);
+      setText('admin-stat-elections', electionsRes.count || 0);
+      setText('admin-stat-results',   resultsRes.count   || 0);
+      setText('admin-stat-news',      newsRes.count      || 0);
+    } catch (err) {
+      console.warn('[admin] Dashboard stats load error:', err.message);
+    }
+
+    // Elections/candidates/results management UI
+    initPartyDropdown();
+    loadLGAsIntoAdminSelects();
+    loadAdminElections();
+    loadAdminResultsList();
+
+    // Manage admin accounts
+    loadAdminUsersList();
+
+    // Admin activity / login log
+    applyActivityLogVisibility();
+    loadAdminLogSummary();
+    loadAdminLogTable();
+  }
+};
+
+function applyRoleBasedAdminVisibility() {
+  const isSuper = Auth.isSuperAdmin();
+  const superOnlyIds = [
+    'admin-elections-wrap', 'admin-dashboard-wrap', 'admin-security-wrap', 'admin-manage-users-wrap',
+    'sidebar-link-elections', 'sidebar-link-dashboard', 'sidebar-link-security', 'sidebar-link-manage-admins',
+  ];
+  superOnlyIds.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = isSuper ? '' : 'none';
+  });
+}
+
+// ============================================================
+// Admin — Manage Admin Accounts (super_admin only)
+// ============================================================
+window.createAdminUser = async function () {
+  const msg = document.getElementById('newadmin-msg');
+  const fullName = document.getElementById('newadmin-name').value.trim();
+  const email = document.getElementById('newadmin-email').value.trim();
+  const password = document.getElementById('newadmin-password').value;
+  const role = document.getElementById('newadmin-role').value;
+
+  if (!fullName || !email || !password) { if (msg) msg.textContent = '❌ Name, email, and password are required.'; return; }
+  if (password.length < 8) { if (msg) msg.textContent = '❌ Password must be at least 8 characters.'; return; }
+
+  try {
+    if (msg) msg.textContent = 'Creating…';
+    await api.auth.register({ fullName, email, password, role });
+    if (msg) msg.textContent = '✅ Account created.';
+    document.getElementById('newadmin-name').value = '';
+    document.getElementById('newadmin-email').value = '';
+    document.getElementById('newadmin-password').value = '';
+    document.getElementById('newadmin-role').value = 'admin';
+    loadAdminUsersList();
+  } catch (err) {
+    if (msg) msg.textContent = '❌ Failed: ' + err.message;
+  }
+};
+
+const ROLE_LABELS = { super_admin: 'Super Admin', admin: 'Admin', staff: 'Staff', voter: 'Voter' };
+
+async function loadAdminUsersList() {
+  const el = document.getElementById('admin-users-list');
+  if (!el) return;
+  el.innerHTML = '<div class="loading">Loading accounts…</div>';
+  try {
+    const { data: users } = await api.auth.users();
+    const me = Auth.getUser();
+    el.innerHTML = `
+      <h4 style="font-family:var(--font-display);color:var(--green);margin-bottom:10px">Existing Accounts</h4>
+      <div class="admin-table">
+        <div class="admin-table-head" style="grid-template-columns:1.3fr 1.6fr .9fr .7fr 1.2fr;"><div>Name</div><div>Email</div><div>Role</div><div>Status</div><div>Actions</div></div>
+        ${users.map(u => `
+          <div class="admin-table-row" style="grid-template-columns:1.3fr 1.6fr .9fr .7fr 1.2fr;">
+            <div>${u.fullName}${u._id === me?._id ? ' (you)' : ''}</div>
+            <div style="font-size:12px;">${u.email}</div>
+            <div>${ROLE_LABELS[u.role] || u.role}</div>
+            <div><span class="${u.isActive ? 'badge-active' : 'badge-pending'}">${u.isActive ? 'active' : 'disabled'}</span></div>
+            <div>
+              ${u._id === me?._id ? '' : `<button class="btn-outline" style="padding:3px 10px;font-size:11px;" onclick="toggleUserActive('${u._id}')">${u.isActive ? 'Disable' : 'Enable'}</button>`}
+              ${u.lockUntil && new Date(u.lockUntil) > new Date() ? `<button class="btn-outline" style="padding:3px 10px;font-size:11px;margin-left:6px;" onclick="unlockUserAccount('${u._id}')">Unlock</button>` : ''}
+            </div>
+          </div>`).join('')}
+      </div>`;
+  } catch (err) {
+    el.innerHTML = `<p class="error-state">Could not load accounts. ${err.message}</p>`;
+  }
+}
+
+window.toggleUserActive = async function (id) {
+  try {
+    await api.auth.toggleUser(id);
+    loadAdminUsersList();
+  } catch (err) {
+    alert('Could not update account: ' + err.message);
+  }
+};
+
+window.unlockUserAccount = async function (id) {
+  try {
+    await api.auth.unlockUser(id);
+    loadAdminUsersList();
+  } catch (err) {
+    alert('Could not unlock account: ' + err.message);
+  }
 };
 
 // ============================================================
@@ -1005,6 +1102,58 @@ window.deleteGalleryGroup = async function (title) {
 // ============================================================
 let adminNewsCache = [];
 
+window.extractNoticeFromLink = async function () {
+  const status = document.getElementById('notice-link-status');
+  const url = document.getElementById('notice-link-url').value.trim();
+  if (!url) { if (status) status.textContent = '❌ Paste a link first.'; return; }
+
+  const btn = document.getElementById('notice-extract-btn');
+  btn.disabled = true; btn.textContent = 'Extracting…';
+  if (status) status.textContent = '';
+
+  try {
+    const { data } = await api.news.extractLink(url);
+
+    if (data.title) document.getElementById('notice-title').value = data.title;
+    if (data.excerpt) document.getElementById('notice-excerpt').value = data.excerpt;
+
+    if (data.isVideo) {
+      document.getElementById('notice-video-url').value = data.videoUrl || url;
+      const safeTitle = (data.title || 'Video').replace(/"/g, '&quot;');
+      const youtubeMatch = (data.videoUrl || url).match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]+)/i);
+      const vimeoMatch = (data.videoUrl || url).match(/vimeo\.com\/(\d+)/i);
+      let embed = '';
+      if (youtubeMatch) {
+        embed = `<div style="position:relative;padding-top:56.25%;height:0;overflow:hidden;border-radius:8px;margin-bottom:16px;"><iframe src="https://www.youtube.com/embed/${youtubeMatch[1]}" title="${safeTitle}" style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>`;
+      } else if (vimeoMatch) {
+        embed = `<div style="position:relative;padding-top:56.25%;height:0;overflow:hidden;border-radius:8px;margin-bottom:16px;"><iframe src="https://player.vimeo.com/video/${vimeoMatch[1]}" title="${safeTitle}" style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe></div>`;
+      }
+      document.getElementById('notice-content').value = embed + (data.excerpt ? `<p>${data.excerpt}</p>` : '');
+    } else {
+      let hostname = '';
+      try { hostname = new URL(url).hostname.replace(/^www\./, ''); } catch {}
+      document.getElementById('notice-content').value =
+        `<p>${data.excerpt || ''}</p><p>📰 <strong>Source:</strong> <a href="${url}" target="_blank" rel="noopener noreferrer">${hostname}</a></p><p><a class="btn-primary" href="${url}" target="_blank" rel="noopener noreferrer">Read Full Story →</a></p>`;
+    }
+
+    const preview = document.getElementById('notice-link-preview');
+    const previewImg = document.getElementById('notice-link-preview-img');
+    document.getElementById('notice-extracted-image').value = data.image || '';
+    if (data.image) {
+      previewImg.src = data.image;
+      preview.style.display = 'block';
+    } else {
+      preview.style.display = 'none';
+    }
+
+    if (status) status.textContent = '✅ Extracted — review the fields below before posting.';
+  } catch (err) {
+    if (status) status.textContent = '❌ Extraction failed: ' + err.message;
+  } finally {
+    btn.disabled = false; btn.textContent = 'Extract';
+  }
+};
+
 window.postNotice = async function () {
   const msg = document.getElementById('notice-msg');
   const editId = document.getElementById('notice-edit-id').value;
@@ -1020,7 +1169,12 @@ window.postNotice = async function () {
   fd.append('category', document.getElementById('notice-category').value);
   fd.append('status', document.getElementById('notice-publish-now').checked ? 'published' : 'draft');
   const imgInput = document.getElementById('notice-image');
-  if (imgInput.files.length) fd.append('featuredImage', imgInput.files[0]);
+  const extractedImage = document.getElementById('notice-extracted-image').value;
+  if (imgInput.files.length) {
+    fd.append('featuredImage', imgInput.files[0]);
+  } else if (extractedImage) {
+    fd.append('featuredImage', extractedImage);
+  }
 
   try {
     if (editId) {
@@ -1036,6 +1190,11 @@ window.postNotice = async function () {
       document.getElementById('notice-excerpt').value = '';
       document.getElementById('notice-content').value = '';
       imgInput.value = '';
+      document.getElementById('notice-link-url').value = '';
+      document.getElementById('notice-extracted-image').value = '';
+      document.getElementById('notice-video-url').value = '';
+      document.getElementById('notice-link-preview').style.display = 'none';
+      document.getElementById('notice-link-status').textContent = '';
     }
     loadAdminNewsList();
   } catch (err) {
@@ -1099,6 +1258,11 @@ window.cancelNoticeEdit = function () {
   document.getElementById('notice-publish-now').checked = true;
   document.getElementById('notice-submit-btn').textContent = 'Post Notice';
   document.getElementById('notice-cancel-btn').style.display = 'none';
+  document.getElementById('notice-link-url').value = '';
+  document.getElementById('notice-extracted-image').value = '';
+  document.getElementById('notice-video-url').value = '';
+  document.getElementById('notice-link-preview').style.display = 'none';
+  document.getElementById('notice-link-status').textContent = '';
 };
 
 window.publishNoticeAdmin = async function (id) {
@@ -1728,24 +1892,58 @@ async function loadAdminLogSummary() {
 
 async function loadAdminLogTable(filterAction = '') {
   const el = document.getElementById('admin-logs-table-body');
+  const head = document.getElementById('admin-logs-table-head');
+  const clearBtn = document.getElementById('clear-log-btn');
   if (!el) return;
+
+  const isSuper = Auth.isSuperAdmin();
+  if (clearBtn) clearBtn.style.display = isSuper ? 'inline-flex' : 'none';
+  const cols = isSuper ? 'grid-template-columns:1.2fr .9fr 1.7fr 1fr .7fr;' : '';
+  if (head) {
+    head.setAttribute('style', cols);
+    head.innerHTML = `<div>User</div><div>Action</div><div>Details</div><div>Time</div>${isSuper ? '<div>Actions</div>' : ''}`;
+  }
+
   el.innerHTML = '<div class="loading">Loading activity log…</div>';
   try {
     const params = filterAction ? `?action=${filterAction}&limit=30` : '?limit=30';
     const { data: logs } = await api.auth.logs(params);
     if (!logs.length) { el.innerHTML = '<div style="padding:16px;color:var(--slate-light);">No activity recorded yet.</div>'; return; }
     el.innerHTML = logs.map(l => `
-      <div class="admin-table-row">
+      <div class="admin-table-row" style="${cols}">
         <div>${l.fullName || l.email || 'Unknown'}</div>
         <div><span class="${l.success ? 'badge-active' : 'badge-pending'}">${l.action.replace(/_/g,' ')}</span></div>
         <div style="font-size:12px;color:var(--slate-light)">${l.details || ''}</div>
         <div style="font-size:12px;">${new Date(l.createdAt).toLocaleString('en-NG')}</div>
+        ${isSuper ? `<div><button class="btn-danger" style="padding:3px 8px;font-size:11px" onclick="deleteLogEntry('${l._id}')">✕</button></div>` : ''}
       </div>`).join('');
   } catch (err) {
     el.innerHTML = `<div style="padding:16px;color:var(--red);">Could not load log: ${err.message}</div>`;
   }
 }
 window.loadAdminLogTable = loadAdminLogTable;
+
+window.deleteLogEntry = async function (id) {
+  if (!confirm('Delete this log entry?')) return;
+  try {
+    await api.auth.deleteLog(id);
+    loadAdminLogTable();
+  } catch (err) {
+    alert('Could not delete: ' + err.message);
+  }
+};
+
+window.clearActivityLog = async function () {
+  if (!confirm('Clear the ENTIRE admin activity log? This cannot be undone.')) return;
+  try {
+    const { deletedCount } = await api.auth.clearLogs();
+    alert(`Cleared ${deletedCount} log entries.`);
+    loadAdminLogTable();
+    loadAdminLogSummary();
+  } catch (err) {
+    alert('Could not clear log: ' + err.message);
+  }
+};
 
 const ACTIVITY_LOG_HIDDEN_KEY = 'kosiec_activity_log_hidden';
 

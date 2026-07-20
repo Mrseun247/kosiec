@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<base href="/">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>KOSIEC – Kogi State Independent Electoral Commission</title>
 <meta name="description" content="Kogi State Independent Electoral Commission – Conducting free, fair and credible Local Government Elections in Kogi State.">
@@ -832,16 +833,17 @@ footer{background:#0e2e1e;padding:56px 5% 24px;}
   </div>
   <div class="admin-grid">
     <div class="admin-sidebar">
-      <a onclick="jumpToAdminSection('admin-sec-dashboard')">📊 Dashboard</a>
+      <a id="sidebar-link-dashboard" onclick="jumpToAdminSection('admin-sec-dashboard')">📊 Dashboard</a>
       <a onclick="jumpToAdminSection('admin-sec-chairman')">🧑‍💼 Chairman Photo</a>
       <a onclick="jumpToAdminSection('admin-sec-countdown')">🗳️ Election Countdown</a>
       <a onclick="jumpToAdminSection('admin-sec-livestream')">🔴 Live Stream</a>
       <a onclick="jumpToAdminSection('admin-sec-publications')">📄 Publications</a>
       <a onclick="jumpToAdminSection('admin-sec-news')">📢 News / Notices</a>
       <a onclick="jumpToAdminSection('admin-sec-gallery')">🖼️ Gallery</a>
-      <a onclick="jumpToAdminSection('admin-sec-elections')">🗳️ Elections & Results</a>
+      <a id="sidebar-link-elections" onclick="jumpToAdminSection('admin-sec-elections')">🗳️ Elections & Results</a>
       <a onclick="jumpToAdminSection('admin-sec-inquiries')">✉️ Inquiries</a>
-      <a onclick="jumpToAdminSection('admin-sec-security')">🔐 Security Log</a>
+      <a id="sidebar-link-manage-admins" onclick="jumpToAdminSection('admin-sec-manage-admins')">👥 Manage Admins</a>
+      <a id="sidebar-link-security" onclick="jumpToAdminSection('admin-sec-security')">🔐 Security Log</a>
       <a onclick="Router.navigate('home')" style="margin-top:14px;border-top:1px solid rgba(255,255,255,.15);padding-top:14px;">🌐 View Website</a>
     </div>
     <div class="admin-content">
@@ -893,6 +895,19 @@ footer{background:#0e2e1e;padding:56px 5% 24px;}
 
       <h3 id="admin-sec-news" style="font-family:var(--font-display);color:var(--green);margin-bottom:14px;font-size:1.1rem">📢 Post News / Notice</h3>
       <div class="admin-photo-section" style="margin-bottom:32px;">
+        <div class="form-group" style="background:var(--green-light);padding:16px;border-radius:8px;">
+          <label>Auto-fill from a Link (news article, YouTube, or Vimeo URL)</label>
+          <div style="display:flex;gap:8px;">
+            <input type="url" id="notice-link-url" placeholder="https://…" style="flex:1;">
+            <button type="button" class="btn-outline" onclick="extractNoticeFromLink()" id="notice-extract-btn" style="white-space:nowrap;">Extract</button>
+          </div>
+          <div id="notice-link-preview" style="margin-top:10px;display:none;">
+            <img id="notice-link-preview-img" style="max-width:160px;max-height:100px;border-radius:6px;display:block;margin-bottom:6px;object-fit:cover;">
+          </div>
+          <span id="notice-link-status" style="font-size:12px;color:var(--slate-light);"></span>
+          <input type="hidden" id="notice-extracted-image" value="">
+          <input type="hidden" id="notice-video-url" value="">
+        </div>
         <div class="form-group"><label>Title</label><input type="text" id="notice-title" placeholder="e.g. Voter Registration Now Open"></div>
         <div class="form-group"><label>Category</label>
           <select id="notice-category">
@@ -943,6 +958,7 @@ footer{background:#0e2e1e;padding:56px 5% 24px;}
         <div id="gal-list" style="margin-top:20px"></div>
       </div>
 
+      <div id="admin-elections-wrap">
       <h3 id="admin-sec-elections" style="font-family:var(--font-display);color:var(--green);margin-bottom:14px;font-size:1.1rem">🗳️ Elections & Results Management</h3>
       <div class="admin-photo-section" style="margin-bottom:32px;">
 
@@ -1036,7 +1052,33 @@ footer{background:#0e2e1e;padding:56px 5% 24px;}
 
         <div id="res-list" style="margin-top:20px"></div>
       </div>
+      </div>
 
+      <div id="admin-manage-users-wrap">
+      <h3 id="admin-sec-manage-admins" style="font-family:var(--font-display);color:var(--green);margin-bottom:14px;font-size:1.1rem">👥 Manage Admin Accounts</h3>
+      <div class="admin-photo-section" style="margin-bottom:32px;">
+        <div class="form-row">
+          <div class="form-group"><label>Full Name</label><input type="text" id="newadmin-name" placeholder="e.g. Jane Doe"></div>
+          <div class="form-group"><label>Email</label><input type="email" id="newadmin-email" placeholder="jane@kosiec.org"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Password</label><input type="password" id="newadmin-password" placeholder="Min. 8 characters"></div>
+          <div class="form-group"><label>Role</label>
+            <select id="newadmin-role">
+              <option value="admin" selected>Admin — News, Publications, Live Stream, Gallery, Inquiries</option>
+              <option value="staff">Staff</option>
+              <option value="super_admin">Super Admin — full access, including elections</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn-primary" onclick="createAdminUser()">Create Account</button>
+        <span id="newadmin-msg" style="margin-left:12px;font-size:13px;"></span>
+
+        <div id="admin-users-list" style="margin-top:20px"></div>
+      </div>
+      </div>
+
+      <div id="admin-dashboard-wrap">
       <h2 id="admin-sec-dashboard" style="font-family:var(--font-display);color:var(--green);margin-bottom:20px">Dashboard Overview</h2>
       <div class="admin-stat-row">
         <div class="admin-stat"><h4>Elections</h4><div class="val" id="admin-stat-elections">—</div></div>
@@ -1044,12 +1086,14 @@ footer{background:#0e2e1e;padding:56px 5% 24px;}
         <div class="admin-stat"><h4>News Articles</h4><div class="val" id="admin-stat-news">—</div></div>
         <div class="admin-stat"><h4>New Inquiries</h4><div class="val" id="admin-stat-inquiries">—</div></div>
       </div>
+      </div>
       <h3 id="admin-sec-inquiries" style="font-family:var(--font-display);color:var(--green);margin-bottom:14px;font-size:1.1rem">Recent Inquiries</h3>
       <div class="admin-table">
         <div class="admin-table-head"><div>Name</div><div>Subject</div><div>Date</div><div>Status</div></div>
         <div id="admin-inquiries-table-body"></div>
       </div>
 
+      <div id="admin-security-wrap">
       <h3 id="admin-sec-security" style="font-family:var(--font-display);color:var(--green);margin:32px 0 14px;font-size:1.1rem">🔐 Login Security (Last 24 Hours)</h3>
       <div class="admin-stat-row">
         <div class="admin-stat" style="border-left-color:#28a745"><h4>Successful Logins</h4><div class="val" id="admin-stat-logins-today">—</div></div>
@@ -1062,17 +1106,21 @@ footer{background:#0e2e1e;padding:56px 5% 24px;}
         <button class="btn-outline" id="activity-log-toggle" style="padding:4px 12px;font-size:11px" onclick="toggleActivityLog()">Hide</button>
       </h3>
       <div id="activity-log-body">
-        <div style="margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap;">
-          <button class="btn-outline" style="padding:6px 14px;font-size:12px" onclick="loadAdminLogTable('')">All</button>
-          <button class="btn-outline" style="padding:6px 14px;font-size:12px" onclick="loadAdminLogTable('login_success')">Logins</button>
-          <button class="btn-outline" style="padding:6px 14px;font-size:12px" onclick="loadAdminLogTable('login_failed')">Failed Logins</button>
-          <button class="btn-outline" style="padding:6px 14px;font-size:12px" onclick="loadAdminLogTable('account_locked')">Lockouts</button>
-          <button class="btn-outline" style="padding:6px 14px;font-size:12px" onclick="loadAdminLogTable('password_change')">Password Changes</button>
+        <div style="margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:space-between;">
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn-outline" style="padding:6px 14px;font-size:12px" onclick="loadAdminLogTable('')">All</button>
+            <button class="btn-outline" style="padding:6px 14px;font-size:12px" onclick="loadAdminLogTable('login_success')">Logins</button>
+            <button class="btn-outline" style="padding:6px 14px;font-size:12px" onclick="loadAdminLogTable('login_failed')">Failed Logins</button>
+            <button class="btn-outline" style="padding:6px 14px;font-size:12px" onclick="loadAdminLogTable('account_locked')">Lockouts</button>
+            <button class="btn-outline" style="padding:6px 14px;font-size:12px" onclick="loadAdminLogTable('password_change')">Password Changes</button>
+          </div>
+          <button class="btn-danger" id="clear-log-btn" style="display:none" onclick="clearActivityLog()">🗑 Clear Log</button>
         </div>
         <div class="admin-table">
-          <div class="admin-table-head"><div>User</div><div>Action</div><div>Details</div><div>Time</div></div>
+          <div class="admin-table-head" id="admin-logs-table-head"><div>User</div><div>Action</div><div>Details</div><div>Time</div></div>
           <div id="admin-logs-table-body"></div>
         </div>
+      </div>
       </div>
     </div>
   </div>

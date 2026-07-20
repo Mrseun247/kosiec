@@ -36,8 +36,34 @@ verifyCloudinary();
 const app = express();
 
 // ── Security & Utility Middleware ──────────────────────────
+// Helmet's default Content-Security-Policy blocks inline event handlers
+// (onclick="…") and external image/font/iframe hosts. This frontend relies
+// on inline onclick="" attributes throughout and loads assets from
+// Cloudinary, Google Fonts, and YouTube/Vimeo/Facebook embeds, so the
+// default CSP silently breaks the entire site once served from this
+// Express app (every click handler and Cloudinary image gets blocked).
+// This was invisible in development because the frontend was served by a
+// separate static server with no CSP headers at all.
 app.use(helmet({
   crossOriginResourcePolicy: { policy: 'cross-origin' }, // allow serving uploads
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
+      // Helmet defaults this to 'none', which is a more specific directive
+      // than script-src and blocks every onclick="" attribute on its own.
+      scriptSrcAttr: ["'unsafe-inline'"],
+      styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+      fontSrc: ["'self'", 'https://fonts.gstatic.com'],
+      // News articles link directly to images hosted by whichever external
+      // outlet published the story, so this can't be a fixed domain list —
+      // any HTTPS image host is allowed; only non-HTTPS/script sources are blocked.
+      imgSrc: ["'self'", 'data:', 'https:'],
+      mediaSrc: ["'self'", 'https://res.cloudinary.com'],
+      frameSrc: ["'self'", 'https://www.youtube.com', 'https://player.vimeo.com', 'https://www.facebook.com'],
+      connectSrc: ["'self'", 'https://res.cloudinary.com'],
+    },
+  },
 }));
 app.use(cors({
   origin: process.env.FRONTEND_URL || '*',
@@ -112,20 +138,24 @@ app.use('/api/inquiries',    inquiriesRouter);
 app.use('/api/testimonials', testimonialsRouter);
 app.use('/api/settings',     settingsRouter);
 
+// ── 404 for unknown API routes ─────────────────────────────
+// Must come before the SPA catch-all below, otherwise an invalid /api/*
+// request would fall through to the wildcard and get served index.html
+// (200 HTML) instead of a proper 404 JSON error.
+app.use('/api/*', (req, res) => {
+  res.status(404).json({ success: false, message: `API route not found: ${req.originalUrl}` });
+});
+
 // ── Serve Frontend in Production ───────────────────────────
 if (process.env.NODE_ENV === 'production') {
   const frontendPath = path.join(__dirname, '..', 'frontend');
   app.use(express.static(frontendPath));
-  // SPA fallback — all non-API routes serve index.html
+  // SPA fallback — all non-API routes serve index.html so the client-side
+  // router can resolve clean paths like /about on direct visit or refresh.
   app.get('*', (req, res) => {
     res.sendFile(path.join(frontendPath, 'index.html'));
   });
 }
-
-// ── 404 for unknown API routes ─────────────────────────────
-app.use('/api/*', (req, res) => {
-  res.status(404).json({ success: false, message: `API route not found: ${req.originalUrl}` });
-});
 
 // ── Global Error Handler ───────────────────────────────────
 app.use(errorHandler);

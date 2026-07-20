@@ -37,11 +37,11 @@ router.get('/:id', async (req, res, next) => {
 });
 
 // @route   POST /api/candidates
-// @access  Private (admin+)
+// @access  Private (super_admin only — election data is off-limits to the admin role)
 router.post(
   '/',
   protect,
-  authorize('super_admin', 'admin', 'staff'),
+  authorize('super_admin'),
   upload.fields([{ name: 'photo', maxCount: 1 }, { name: 'partyLogo', maxCount: 1 }]),
   async (req, res, next) => {
     try {
@@ -59,11 +59,11 @@ router.post(
 );
 
 // @route   PUT /api/candidates/:id
-// @access  Private (admin+)
+// @access  Private (super_admin only — election data is off-limits to the admin role)
 router.put(
   '/:id',
   protect,
-  authorize('super_admin', 'admin', 'staff'),
+  authorize('super_admin'),
   upload.fields([{ name: 'photo', maxCount: 1 }, { name: 'partyLogo', maxCount: 1 }]),
   async (req, res, next) => {
     try {
@@ -86,8 +86,8 @@ router.put(
 
 // @route   PUT /api/candidates/:id/accredit
 // @desc    Accredit a candidate
-// @access  Private (admin+)
-router.put('/:id/accredit', protect, authorize('super_admin', 'admin'), async (req, res, next) => {
+// @access  Private (super_admin only — election data is off-limits to the admin role)
+router.put('/:id/accredit', protect, authorize('super_admin'), async (req, res, next) => {
   try {
     const candidate = await Candidate.findByIdAndUpdate(
       req.params.id,

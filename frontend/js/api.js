@@ -38,12 +38,15 @@ const api = {
     login:          (data) => api.post('/auth/login', data),
     logout:         ()     => api.post('/auth/logout', {}),
     me:             ()     => api.get('/auth/me'),
+    register:       (data) => api.post('/auth/register', data),
     changePassword: (data) => api.put('/auth/change-password', data),
     users:          ()     => api.get('/auth/users'),
     toggleUser:     (id)   => api.put(`/auth/users/${id}/toggle`, {}),
     unlockUser:     (id)   => api.put(`/auth/users/${id}/unlock`, {}),
     logs:           (params = '') => api.get(`/auth/logs${params}`),
     logsSummary:    ()     => api.get('/auth/logs/summary'),
+    deleteLog:      (id)   => api.delete(`/auth/logs/${id}`),
+    clearLogs:      (params = '') => api.delete(`/auth/logs${params}`),
   },
 
   // ── Settings (public) ───────────────────────────────────
@@ -101,6 +104,7 @@ const api = {
     update:       (id, fd)      => api.uploadPut(`/news/${id}`, fd),
     publish:      (id)          => api.put(`/news/${id}/publish`, {}),
     delete:       (id)          => api.delete(`/news/${id}`),
+    extractLink:  (url)         => api.post('/news/extract-link', { url }),
   },
 
   // ── Team ────────────────────────────────────────────────

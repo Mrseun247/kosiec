@@ -54,11 +54,11 @@ router.get('/:id', async (req, res, next) => {
 
 // @route   POST /api/elections
 // @desc    Create election
-// @access  Private (super_admin, admin)
+// @access  Private (super_admin only — election data is off-limits to the admin role)
 router.post(
   '/',
   protect,
-  authorize('super_admin', 'admin'),
+  authorize('super_admin'),
   upload.single('timetableDoc'),
   async (req, res, next) => {
     try {
@@ -76,11 +76,11 @@ router.post(
 
 // @route   PUT /api/elections/:id
 // @desc    Update election
-// @access  Private (super_admin, admin)
+// @access  Private (super_admin only — election data is off-limits to the admin role)
 router.put(
   '/:id',
   protect,
-  authorize('super_admin', 'admin'),
+  authorize('super_admin'),
   upload.single('timetableDoc'),
   async (req, res, next) => {
     try {
@@ -99,8 +99,8 @@ router.put(
 
 // @route   PUT /api/elections/:id/status
 // @desc    Update election status only
-// @access  Private (super_admin, admin)
-router.put('/:id/status', protect, authorize('super_admin', 'admin'), async (req, res, next) => {
+// @access  Private (super_admin only — election data is off-limits to the admin role)
+router.put('/:id/status', protect, authorize('super_admin'), async (req, res, next) => {
   try {
     const { status } = req.body;
     const valid = ['scheduled', 'ongoing', 'completed', 'suspended', 'cancelled'];

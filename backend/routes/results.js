@@ -44,8 +44,8 @@ router.get('/', async (req, res, next) => {
 
 // @route   GET /api/results/all
 // @desc    Get ALL results including drafts (admin only)
-// @access  Private (admin+)
-router.get('/all', protect, authorize('super_admin', 'admin', 'staff'), async (req, res, next) => {
+// @access  Private (super_admin only — election data is off-limits to the admin role)
+router.get('/all', protect, authorize('super_admin'), async (req, res, next) => {
   try {
     const filter = {};
     if (req.query.election) filter.election = req.query.election;
@@ -72,7 +72,7 @@ router.get('/:id', attachAdminIfPresent, async (req, res, next) => {
       .populate('winner', 'fullName party photo');
 
     if (!result) return res.status(404).json({ success: false, message: 'Result not found.' });
-    const isAdmin = req.user && ['super_admin', 'admin', 'staff'].includes(req.user.role);
+    const isAdmin = req.user && req.user.role === 'super_admin';
     if (result.status !== 'published' && !isAdmin) {
       return res.status(403).json({ success: false, message: 'Result not yet published.' });
     }
@@ -82,8 +82,8 @@ router.get('/:id', attachAdminIfPresent, async (req, res, next) => {
 
 // @route   POST /api/results
 // @desc    Create new result (collation)
-// @access  Private (admin, staff)
-router.post('/', protect, authorize('super_admin', 'admin', 'staff'), async (req, res, next) => {
+// @access  Private (super_admin only — election data is off-limits to the admin role)
+router.post('/', protect, authorize('super_admin'), async (req, res, next) => {
   try {
     const data = { ...req.body, collatedBy: req.user._id };
     if (data.voteEntries && typeof data.voteEntries === 'string') {
@@ -102,8 +102,8 @@ router.post('/', protect, authorize('super_admin', 'admin', 'staff'), async (req
 
 // @route   PUT /api/results/:id
 // @desc    Update result
-// @access  Private (admin+)
-router.put('/:id', protect, authorize('super_admin', 'admin'), async (req, res, next) => {
+// @access  Private (super_admin only — election data is off-limits to the admin role)
+router.put('/:id', protect, authorize('super_admin'), async (req, res, next) => {
   try {
     const data = { ...req.body };
     if (data.voteEntries && typeof data.voteEntries === 'string') {
@@ -148,8 +148,8 @@ router.put('/:id', protect, authorize('super_admin', 'admin'), async (req, res, 
 
 // @route   PUT /api/results/:id/publish
 // @desc    Publish a result (make it public)
-// @access  Private (super_admin, admin)
-router.put('/:id/publish', protect, authorize('super_admin', 'admin'), async (req, res, next) => {
+// @access  Private (super_admin only — election data is off-limits to the admin role)
+router.put('/:id/publish', protect, authorize('super_admin'), async (req, res, next) => {
   try {
     const result = await Result.findByIdAndUpdate(
       req.params.id,

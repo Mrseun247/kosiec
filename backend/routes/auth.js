@@ -5,6 +5,7 @@ const { body, validationResult } = require('express-validator');
 const User = require('../models/User');
 const AdminLog = require('../models/AdminLog');
 const { protect, authorize } = require('../middleware/auth');
+const { writeAuditLog } = require('../utils/auditLog');
 
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCK_DURATION_MS = 30 * 60 * 1000; // 30 minutes
@@ -240,7 +241,7 @@ router.put(
 );
 
 // @route   GET /api/auth/users
-router.get('/users', protect, authorize('super_admin', 'admin'), async (req, res, next) => {
+router.get('/users', protect, authorize('super_admin'), async (req, res, next) => {
   try {
     const users = await User.find().populate('lga', 'name').sort('-createdAt');
     res.json({ success: true, count: users.length, data: users });
@@ -308,7 +309,7 @@ router.put('/users/:id/unlock', protect, authorize('super_admin'), async (req, r
 // GET /api/auth/logs
 // View admin activity / login logs — paginated, filterable
 // ============================================================
-router.get('/logs', protect, authorize('super_admin', 'admin'), async (req, res, next) => {
+router.get('/logs', protect, authorize('super_admin'), async (req, res, next) => {
   try {
     const filter = {};
     if (req.query.action) filter.action = req.query.action;
@@ -341,7 +342,7 @@ router.get('/logs', protect, authorize('super_admin', 'admin'), async (req, res,
 // GET /api/auth/logs/summary
 // Quick dashboard summary: recent failed logins, locked accounts, etc.
 // ============================================================
-router.get('/logs/summary', protect, authorize('super_admin', 'admin'), async (req, res, next) => {
+router.get('/logs/summary', protect, authorize('super_admin'), async (req, res, next) => {
   try {
     const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
@@ -359,6 +360,45 @@ router.get('/logs/summary', protect, authorize('super_admin', 'admin'), async (r
   } catch (err) {
     next(err);
   }
+});
+
+// ============================================================
+// DELETE /api/auth/logs/:id
+// Delete a single admin activity log entry
+// ============================================================
+router.delete('/logs/:id', protect, authorize('super_admin'), async (req, res, next) => {
+  try {
+    const log = await AdminLog.findByIdAndDelete(req.params.id);
+    if (!log) return res.status(404).json({ success: false, message: 'Log entry not found.' });
+    res.json({ success: true, message: 'Log entry deleted.' });
+  } catch (err) { next(err); }
+});
+
+// ============================================================
+// DELETE /api/auth/logs
+// Bulk-clear the admin activity log, so it doesn't grow unbounded and
+// crowd the admin panel. Optionally scoped to the same ?action filter as
+// GET /logs, or to entries older than ?olderThanDays; with no query params
+// it clears everything. One "delete" entry is written afterward so the
+// clear itself stays traceable.
+// ============================================================
+router.delete('/logs', protect, authorize('super_admin'), async (req, res, next) => {
+  try {
+    const filter = {};
+    if (req.query.action) filter.action = req.query.action;
+    if (req.query.olderThanDays) {
+      const cutoff = new Date(Date.now() - parseInt(req.query.olderThanDays, 10) * 24 * 60 * 60 * 1000);
+      filter.createdAt = { $lt: cutoff };
+    }
+
+    const result = await AdminLog.deleteMany(filter);
+    await writeAuditLog(req, {
+      action: 'delete',
+      resource: 'AdminLog',
+      details: `Cleared ${result.deletedCount} activity log entr${result.deletedCount === 1 ? 'y' : 'ies'}.`,
+    });
+    res.json({ success: true, message: `${result.deletedCount} log entries deleted.`, deletedCount: result.deletedCount });
+  } catch (err) { next(err); }
 });
 
 module.exports = router;

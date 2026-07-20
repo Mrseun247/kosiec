@@ -5,21 +5,22 @@ const Router = {
           'events','faq','downloads','contact','login','admin','privacy'],
 
   init() {
-    // Read hash on load. 'adminlogin' is a hidden entry point to the portal
-    // login page — it's not linked anywhere in the public nav/footer/search,
-    // reachable only by visiting the URL directly.
-    const hash = window.location.hash.replace('#', '') || 'home';
-    const resolved = hash === 'adminlogin' ? 'login' : hash;
+    // Read the URL path on load. 'adminlogin' is a hidden entry point to the
+    // portal login page — it's not linked anywhere in the public nav/footer/
+    // search, reachable only by visiting the URL directly.
+    const path = window.location.pathname.replace(/^\/|\/$/g, '') || 'home';
+    const resolved = path === 'adminlogin' ? 'login' : path;
     this.navigate(this.pages.includes(resolved) ? resolved : 'home', false);
 
-    window.addEventListener('hashchange', () => {
-      const page = window.location.hash.replace('#', '');
-      const resolvedPage = page === 'adminlogin' ? 'login' : page;
+    // Back/forward browser navigation (pushState itself does not fire this).
+    window.addEventListener('popstate', () => {
+      const path = window.location.pathname.replace(/^\/|\/$/g, '') || 'home';
+      const resolvedPage = path === 'adminlogin' ? 'login' : path;
       if (this.pages.includes(resolvedPage)) this.navigate(resolvedPage, false);
     });
   },
 
-  navigate(pageId, updateHash = true) {
+  navigate(pageId, updateUrl = true) {
     // Guard admin page
     if (pageId === 'admin' && !Auth.isAdmin()) {
       this.navigate('login');
@@ -52,7 +53,10 @@ const Router = {
     if (ticker) ticker.style.display = isAdminPage ? 'none' : '';
     document.body.classList.toggle('admin-mode', isAdminPage);
 
-    if (updateHash) window.location.hash = pageId;
+    if (updateUrl) {
+      const path = pageId === 'home' ? '/' : '/' + pageId;
+      if (window.location.pathname !== path) history.pushState({ page: pageId }, '', path);
+    }
 
     // Update nav active state
     document.querySelectorAll('.nav-links a[data-page]').forEach(a => {

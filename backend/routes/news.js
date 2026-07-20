@@ -84,6 +84,105 @@ router.get('/:slug', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// @route   POST /api/news/extract-link
+// @desc    Given an external URL (news article or video), fetch it and pull
+//          out a title/excerpt/thumbnail so the admin doesn't have to type
+//          everything by hand. YouTube/Vimeo links resolve via their oEmbed
+//          APIs; anything else is scraped for Open Graph meta tags.
+// @access  Private (admin+)
+router.post('/extract-link', protect, authorize('super_admin', 'admin', 'staff'), async (req, res, next) => {
+  try {
+    const { url } = req.body;
+    if (!url || !/^https?:\/\//i.test(url)) {
+      return res.status(400).json({ success: false, message: 'A valid http(s) URL is required.' });
+    }
+
+    const youtubeMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([\w-]+)/i);
+    const vimeoMatch = url.match(/vimeo\.com\/(\d+)/i);
+
+    // ── YouTube ──────────────────────────────────────────────
+    if (youtubeMatch) {
+      let title = '';
+      try {
+        const oembed = await fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`);
+        if (oembed.ok) title = (await oembed.json()).title || '';
+      } catch { /* fall through with empty title */ }
+      return res.json({
+        success: true,
+        data: {
+          isVideo: true,
+          videoUrl: url,
+          title,
+          excerpt: '',
+          image: `https://img.youtube.com/vi/${youtubeMatch[1]}/hqdefault.jpg`,
+        },
+      });
+    }
+
+    // ── Vimeo ────────────────────────────────────────────────
+    if (vimeoMatch) {
+      let title = '', image = '';
+      try {
+        const oembed = await fetch(`https://vimeo.com/api/oembed.json?url=${encodeURIComponent(url)}`);
+        if (oembed.ok) {
+          const j = await oembed.json();
+          title = j.title || '';
+          image = j.thumbnail_url || '';
+        }
+      } catch { /* fall through with empty title/image */ }
+      return res.json({
+        success: true,
+        data: { isVideo: true, videoUrl: url, title, excerpt: '', image },
+      });
+    }
+
+    // ── Generic article — scrape Open Graph / basic meta tags ──
+    const pageRes = await fetch(url, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; KOSIECBot/1.0; +https://kosiec.gov.ng)' },
+      redirect: 'follow',
+    });
+    if (!pageRes.ok) {
+      return res.status(422).json({ success: false, message: `Could not fetch that URL (HTTP ${pageRes.status}).` });
+    }
+    const html = await pageRes.text();
+
+    const getMeta = (prop) => {
+      const patterns = [
+        new RegExp(`<meta[^>]+(?:property|name)=["']${prop}["'][^>]+content=["']([^"']+)["']`, 'i'),
+        new RegExp(`<meta[^>]+content=["']([^"']+)["'][^>]+(?:property|name)=["']${prop}["']`, 'i'),
+      ];
+      for (const re of patterns) {
+        const m = re.exec(html);
+        if (m) return m[1];
+      }
+      return '';
+    };
+
+    const decodeEntities = (s) => s
+      .replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#39;/g, "'")
+      .replace(/&lt;/g, '<').replace(/&gt;/g, '>');
+
+    const titleTagMatch = /<title>([^<]+)<\/title>/i.exec(html);
+    const title = decodeEntities(getMeta('og:title') || (titleTagMatch ? titleTagMatch[1] : '')).trim();
+    const excerpt = decodeEntities(getMeta('og:description') || getMeta('description') || '').trim();
+    let image = getMeta('og:image') || getMeta('twitter:image') || '';
+    // Resolve protocol-relative or root-relative image URLs against the source page
+    if (image && !/^https?:\/\//i.test(image)) {
+      try { image = new URL(image, url).href; } catch { image = ''; }
+    }
+
+    res.json({
+      success: true,
+      data: { isVideo: false, sourceUrl: url, title, excerpt, image },
+    });
+  } catch (err) {
+    if (err.name === 'TypeError' && /fetch/i.test(err.message)) {
+      return res.status(422).json({ success: false, message: 'Could not reach that URL.' });
+    }
+    next(err);
+  }
+});
+
 // @route   POST /api/news
 // @desc    Create article
 // @access  Private (admin+)

@@ -1,0 +1,16 @@
+# Single-page app fallback: let the client-side router handle every path
+# that isn't a real file (css/js/images), so URLs like /about or /results
+# work on direct visit and on refresh, not just when clicked from within
+# the app.
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  # Serve real files and directories as-is
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+
+  # Everything else falls back to index.html
+  RewriteRule ^ index.html [L]
+</IfModule>
