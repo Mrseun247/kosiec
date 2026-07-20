@@ -498,6 +498,41 @@ footer{background:#0e2e1e;padding:56px 5% 24px;}
   </div>
 </div>
 
+<!-- INQUIRY DETAIL MODAL -->
+<div class="modal-overlay" id="inquiry-modal" onclick="if(event.target===this) closeInquiryModal()">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeInquiryModal()">✕</button>
+    <h2 id="inquiry-modal-title" style="font-family:var(--font-display);color:var(--green);font-size:1.4rem;margin-bottom:4px;"></h2>
+    <div class="modal-date" id="inquiry-modal-date"></div>
+    <div class="form-group"><label>From</label><div id="inquiry-modal-name" style="font-size:14px;color:var(--slate);"></div></div>
+    <div class="form-row">
+      <div class="form-group"><label>Email</label><div id="inquiry-modal-email" style="font-size:14px;color:var(--slate);"></div></div>
+      <div class="form-group"><label>Phone</label><div id="inquiry-modal-phone" style="font-size:14px;color:var(--slate);"></div></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>LGA</label><div id="inquiry-modal-lga" style="font-size:14px;color:var(--slate);"></div></div>
+      <div class="form-group"><label>Subject</label><div id="inquiry-modal-subject" style="font-size:14px;color:var(--slate);"></div></div>
+    </div>
+    <div class="form-group"><label>Message</label>
+      <div id="inquiry-modal-message" style="font-size:14px;color:var(--slate);line-height:1.7;background:var(--ivory);border-radius:8px;padding:14px;white-space:pre-wrap;"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Status</label>
+        <select id="inquiry-modal-status">
+          <option value="new">New</option>
+          <option value="read">Read</option>
+          <option value="replied">Replied</option>
+          <option value="closed">Closed</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Internal Notes (optional)</label><input type="text" id="inquiry-modal-notes" placeholder="Not visible to the public"></div>
+    </div>
+    <input type="hidden" id="inquiry-modal-id" value="">
+    <button class="btn-primary" onclick="saveInquiryStatus()">Save</button>
+    <span id="inquiry-modal-msg" style="margin-left:12px;font-size:13px;"></span>
+  </div>
+</div>
+
 <!-- NAVBAR -->
 <nav id="navbar">
   <div class="nav-brand" onclick="Router.navigate('home')">
@@ -1062,7 +1097,7 @@ footer{background:#0e2e1e;padding:56px 5% 24px;}
           <div class="form-group"><label>Email</label><input type="email" id="newadmin-email" placeholder="jane@kosiec.org"></div>
         </div>
         <div class="form-row">
-          <div class="form-group"><label>Password</label><input type="password" id="newadmin-password" placeholder="Min. 8 characters"></div>
+          <div class="form-group"><label id="newadmin-password-label">Password</label><input type="password" id="newadmin-password" placeholder="Min. 8 characters"></div>
           <div class="form-group"><label>Role</label>
             <select id="newadmin-role">
               <option value="admin" selected>Admin — News, Publications, Live Stream, Gallery, Inquiries</option>
@@ -1071,8 +1106,11 @@ footer{background:#0e2e1e;padding:56px 5% 24px;}
             </select>
           </div>
         </div>
-        <button class="btn-primary" onclick="createAdminUser()">Create Account</button>
+        <input type="hidden" id="newadmin-edit-id" value="">
+        <button class="btn-primary" id="newadmin-submit-btn" onclick="createAdminUser()">Create Account</button>
+        <button class="btn-outline" id="newadmin-cancel-btn" style="display:none;margin-left:10px" onclick="cancelAdminUserEdit()">Cancel Edit</button>
         <span id="newadmin-msg" style="margin-left:12px;font-size:13px;"></span>
+        <div id="newadmin-password-reveal" style="display:none;margin-top:14px;padding:12px 16px;background:var(--green-light);border-radius:8px;font-size:13px;color:var(--green);"></div>
 
         <div id="admin-users-list" style="margin-top:20px"></div>
       </div>
@@ -1089,7 +1127,7 @@ footer{background:#0e2e1e;padding:56px 5% 24px;}
       </div>
       <h3 id="admin-sec-inquiries" style="font-family:var(--font-display);color:var(--green);margin-bottom:14px;font-size:1.1rem">Recent Inquiries</h3>
       <div class="admin-table">
-        <div class="admin-table-head"><div>Name</div><div>Subject</div><div>Date</div><div>Status</div></div>
+        <div class="admin-table-head" style="grid-template-columns:1.2fr 1fr .9fr .7fr .6fr;"><div>Name</div><div>Subject</div><div>Date</div><div>Status</div><div>Actions</div></div>
         <div id="admin-inquiries-table-body"></div>
       </div>
 

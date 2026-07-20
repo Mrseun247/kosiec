@@ -842,22 +842,44 @@ function applyRoleBasedAdminVisibility() {
 // ============================================================
 window.createAdminUser = async function () {
   const msg = document.getElementById('newadmin-msg');
+  const reveal = document.getElementById('newadmin-password-reveal');
+  const editId = document.getElementById('newadmin-edit-id').value;
   const fullName = document.getElementById('newadmin-name').value.trim();
   const email = document.getElementById('newadmin-email').value.trim();
   const password = document.getElementById('newadmin-password').value;
   const role = document.getElementById('newadmin-role').value;
 
-  if (!fullName || !email || !password) { if (msg) msg.textContent = '❌ Name, email, and password are required.'; return; }
-  if (password.length < 8) { if (msg) msg.textContent = '❌ Password must be at least 8 characters.'; return; }
+  if (reveal) reveal.style.display = 'none';
+
+  if (!fullName || !email) { if (msg) msg.textContent = '❌ Name and email are required.'; return; }
+  if (!editId && !password) { if (msg) msg.textContent = '❌ Password is required for a new account.'; return; }
+  if (password && password.length < 8) { if (msg) msg.textContent = '❌ Password must be at least 8 characters.'; return; }
 
   try {
-    if (msg) msg.textContent = 'Creating…';
-    await api.auth.register({ fullName, email, password, role });
-    if (msg) msg.textContent = '✅ Account created.';
-    document.getElementById('newadmin-name').value = '';
-    document.getElementById('newadmin-email').value = '';
-    document.getElementById('newadmin-password').value = '';
-    document.getElementById('newadmin-role').value = 'admin';
+    if (editId) {
+      if (msg) msg.textContent = 'Updating…';
+      await api.auth.updateUser(editId, { fullName, email, role, password: password || undefined });
+      if (msg) msg.textContent = '✅ Account updated.';
+      if (password && reveal) {
+        // Passwords are bcrypt-hashed and can never be read back from storage —
+        // this is the only moment it's shown, so it can be copied down now.
+        reveal.style.display = 'block';
+        reveal.innerHTML = `🔑 New password for <strong>${email}</strong>: <code>${password}</code><br><span style="font-size:11px;">Save this now — it cannot be retrieved again later.</span>`;
+      }
+      cancelAdminUserEdit();
+    } else {
+      if (msg) msg.textContent = 'Creating…';
+      await api.auth.register({ fullName, email, password, role });
+      if (msg) msg.textContent = '✅ Account created.';
+      if (reveal) {
+        reveal.style.display = 'block';
+        reveal.innerHTML = `🔑 Password for <strong>${email}</strong>: <code>${password}</code><br><span style="font-size:11px;">Save this now — it cannot be retrieved again later.</span>`;
+      }
+      document.getElementById('newadmin-name').value = '';
+      document.getElementById('newadmin-email').value = '';
+      document.getElementById('newadmin-password').value = '';
+      document.getElementById('newadmin-role').value = 'admin';
+    }
     loadAdminUsersList();
   } catch (err) {
     if (msg) msg.textContent = '❌ Failed: ' + err.message;
@@ -865,6 +887,7 @@ window.createAdminUser = async function () {
 };
 
 const ROLE_LABELS = { super_admin: 'Super Admin', admin: 'Admin', staff: 'Staff', voter: 'Voter' };
+let adminUsersCache = [];
 
 async function loadAdminUsersList() {
   const el = document.getElementById('admin-users-list');
@@ -872,19 +895,21 @@ async function loadAdminUsersList() {
   el.innerHTML = '<div class="loading">Loading accounts…</div>';
   try {
     const { data: users } = await api.auth.users();
+    adminUsersCache = users;
     const me = Auth.getUser();
     el.innerHTML = `
       <h4 style="font-family:var(--font-display);color:var(--green);margin-bottom:10px">Existing Accounts</h4>
       <div class="admin-table">
-        <div class="admin-table-head" style="grid-template-columns:1.3fr 1.6fr .9fr .7fr 1.2fr;"><div>Name</div><div>Email</div><div>Role</div><div>Status</div><div>Actions</div></div>
+        <div class="admin-table-head" style="grid-template-columns:1.1fr 1.5fr .8fr .7fr 1.6fr;"><div>Name</div><div>Email</div><div>Role</div><div>Status</div><div>Actions</div></div>
         ${users.map(u => `
-          <div class="admin-table-row" style="grid-template-columns:1.3fr 1.6fr .9fr .7fr 1.2fr;">
+          <div class="admin-table-row" style="grid-template-columns:1.1fr 1.5fr .8fr .7fr 1.6fr;">
             <div>${u.fullName}${u._id === me?._id ? ' (you)' : ''}</div>
             <div style="font-size:12px;">${u.email}</div>
             <div>${ROLE_LABELS[u.role] || u.role}</div>
             <div><span class="${u.isActive ? 'badge-active' : 'badge-pending'}">${u.isActive ? 'active' : 'disabled'}</span></div>
             <div>
-              ${u._id === me?._id ? '' : `<button class="btn-outline" style="padding:3px 10px;font-size:11px;" onclick="toggleUserActive('${u._id}')">${u.isActive ? 'Disable' : 'Enable'}</button>`}
+              <button class="btn-outline" style="padding:3px 10px;font-size:11px;" onclick="editAdminUser('${u._id}')">Edit</button>
+              ${u._id === me?._id ? '' : `<button class="btn-outline" style="padding:3px 10px;font-size:11px;margin-left:6px;" onclick="toggleUserActive('${u._id}')">${u.isActive ? 'Disable' : 'Enable'}</button>`}
               ${u.lockUntil && new Date(u.lockUntil) > new Date() ? `<button class="btn-outline" style="padding:3px 10px;font-size:11px;margin-left:6px;" onclick="unlockUserAccount('${u._id}')">Unlock</button>` : ''}
             </div>
           </div>`).join('')}
@@ -893,6 +918,34 @@ async function loadAdminUsersList() {
     el.innerHTML = `<p class="error-state">Could not load accounts. ${err.message}</p>`;
   }
 }
+
+window.editAdminUser = function (id) {
+  const u = adminUsersCache.find(x => x._id === id);
+  if (!u) return;
+  document.getElementById('newadmin-edit-id').value = id;
+  document.getElementById('newadmin-name').value = u.fullName || '';
+  document.getElementById('newadmin-email').value = u.email || '';
+  document.getElementById('newadmin-role').value = u.role || 'admin';
+  document.getElementById('newadmin-password').value = '';
+  document.getElementById('newadmin-password').placeholder = 'Leave blank to keep current password';
+  document.getElementById('newadmin-password-label').textContent = 'New Password (optional)';
+  document.getElementById('newadmin-submit-btn').textContent = 'Update Account';
+  document.getElementById('newadmin-cancel-btn').style.display = 'inline-flex';
+  document.getElementById('newadmin-password-reveal').style.display = 'none';
+  document.getElementById('newadmin-name').scrollIntoView({ behavior: 'smooth', block: 'center' });
+};
+
+window.cancelAdminUserEdit = function () {
+  document.getElementById('newadmin-edit-id').value = '';
+  document.getElementById('newadmin-name').value = '';
+  document.getElementById('newadmin-email').value = '';
+  document.getElementById('newadmin-password').value = '';
+  document.getElementById('newadmin-password').placeholder = 'Min. 8 characters';
+  document.getElementById('newadmin-password-label').textContent = 'Password';
+  document.getElementById('newadmin-role').value = 'admin';
+  document.getElementById('newadmin-submit-btn').textContent = 'Create Account';
+  document.getElementById('newadmin-cancel-btn').style.display = 'none';
+};
 
 window.toggleUserActive = async function (id) {
   try {
@@ -2003,18 +2056,70 @@ window.uploadChairmanPhoto = async function(memberId) {
   }
 };
 
+let adminInquiriesCache = [];
+
 function renderAdminInquiries(inquiries) {
+  adminInquiriesCache = inquiries;
   const el = document.getElementById('admin-inquiries-table-body');
   if (!el) return;
   if (!inquiries.length) { el.innerHTML = '<div style="padding:16px;color:var(--slate-light);">No inquiries yet.</div>'; return; }
   el.innerHTML = inquiries.map(i => `
-    <div class="admin-table-row">
+    <div class="admin-table-row" style="grid-template-columns:1.2fr 1fr .9fr .7fr .6fr;">
       <div>${i.fullName}</div>
       <div>${i.subject?.replace(/_/g,' ') || '—'}</div>
       <div>${new Date(i.createdAt).toLocaleDateString('en-NG')}</div>
       <div><span class="badge-${i.status === 'new' ? 'pending' : 'active'}">${i.status}</span></div>
+      <div><button class="btn-outline" style="padding:3px 10px;font-size:11px;" onclick="viewInquiryDetail('${i._id}')">View</button></div>
     </div>`).join('');
 }
+
+window.viewInquiryDetail = function (id) {
+  const i = adminInquiriesCache.find(x => x._id === id);
+  if (!i) return;
+  document.getElementById('inquiry-modal-id').value = id;
+  document.getElementById('inquiry-modal-title').textContent = (i.subject || 'general').replace(/_/g, ' ');
+  document.getElementById('inquiry-modal-date').textContent = new Date(i.createdAt).toLocaleString('en-NG', { dateStyle: 'long', timeStyle: 'short' });
+  document.getElementById('inquiry-modal-name').textContent = i.fullName || '—';
+  document.getElementById('inquiry-modal-email').textContent = i.email || '—';
+  document.getElementById('inquiry-modal-phone').textContent = i.phone || '—';
+  document.getElementById('inquiry-modal-lga').textContent = i.lga?.name || '—';
+  document.getElementById('inquiry-modal-subject').textContent = (i.subject || 'general').replace(/_/g, ' ');
+  document.getElementById('inquiry-modal-message').textContent = i.message || '';
+  document.getElementById('inquiry-modal-status').value = i.status || 'new';
+  document.getElementById('inquiry-modal-notes').value = i.adminNotes || '';
+  document.getElementById('inquiry-modal-msg').textContent = '';
+  document.getElementById('inquiry-modal').classList.add('open');
+
+  // Viewing a "new" inquiry naturally marks it read, same as any inbox
+  if (i.status === 'new') {
+    api.inquiries.setStatus(id, { status: 'read' }).then(() => {
+      i.status = 'read';
+      document.getElementById('inquiry-modal-status').value = 'read';
+      renderAdminInquiries(adminInquiriesCache);
+    }).catch(() => {});
+  }
+};
+
+window.closeInquiryModal = function () {
+  document.getElementById('inquiry-modal').classList.remove('open');
+};
+
+window.saveInquiryStatus = async function () {
+  const msg = document.getElementById('inquiry-modal-msg');
+  const id = document.getElementById('inquiry-modal-id').value;
+  const status = document.getElementById('inquiry-modal-status').value;
+  const adminNotes = document.getElementById('inquiry-modal-notes').value.trim();
+  try {
+    if (msg) msg.textContent = 'Saving…';
+    const { data } = await api.inquiries.setStatus(id, { status, adminNotes });
+    const cached = adminInquiriesCache.find(x => x._id === id);
+    if (cached) { cached.status = data.status; cached.adminNotes = data.adminNotes; }
+    renderAdminInquiries(adminInquiriesCache);
+    if (msg) msg.textContent = '✅ Saved.';
+  } catch (err) {
+    if (msg) msg.textContent = '❌ Failed: ' + err.message;
+  }
+};
 
 // ============================================================
 // Shared helpers
