@@ -149,8 +149,10 @@ const api = {
   // ── Inquiries ───────────────────────────────────────────
   inquiries: {
     submit:    (data) => api.post('/inquiries', data),
-    getAll:    ()     => api.get('/inquiries'),
+    getAll:    (params = '') => api.get(`/inquiries${params}`),
     setStatus: (id, data) => api.put(`/inquiries/${id}/status`, data),
+    archive:   (id, archived = true) => api.put(`/inquiries/${id}/archive`, { archived }),
+    delete:    (id) => api.delete(`/inquiries/${id}`),
   },
 
   // ── Testimonials ────────────────────────────────────────

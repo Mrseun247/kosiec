@@ -190,6 +190,11 @@ const InquirySchema = new mongoose.Schema(
       enum: ['new', 'read', 'replied', 'closed'],
       default: 'new',
     },
+    // Mail-style archive: independent of status. Archiving just moves an
+    // inquiry out of the Inbox view — it doesn't mean it's been read,
+    // replied to, or closed, and it can always be moved back.
+    isArchived: { type: Boolean, default: false },
+    archivedAt: { type: Date },
     adminNotes: { type: String }, // Internal notes
     repliedAt: { type: Date },
     repliedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
@@ -199,6 +204,7 @@ const InquirySchema = new mongoose.Schema(
 );
 
 InquirySchema.index({ status: 1, createdAt: -1 });
+InquirySchema.index({ isArchived: 1, createdAt: -1 });
 
 const Inquiry = mongoose.model('Inquiry', InquirySchema);
 

@@ -5,6 +5,7 @@ const { Event, Download, GalleryItem, Inquiry, Testimonial, Setting } =
 const { protect, authorize } = require('../middleware/auth');
 const upload = require('../middleware/upload');
 const nodemailer = require('nodemailer');
+const { writeAuditLog } = require('../utils/auditLog');
 
 // ============================================================
 // EVENTS  —  /api/events
@@ -232,16 +233,35 @@ inquiriesRouter.post('/', async (req, res, next) => {
 });
 
 // @route   GET /api/inquiries
-// @desc    Get all inquiries
+// @desc    Get inquiries — paginated, filterable by status and archive state.
+//          Mail-inbox semantics: ?archived=false (default) = Inbox,
+//          ?archived=true = Archived. Omit ?archived to get everything.
 // @access  Private (admin+)
 inquiriesRouter.get('/', protect, authorize('super_admin', 'admin', 'staff'), async (req, res, next) => {
   try {
     const filter = {};
     if (req.query.status) filter.status = req.query.status;
-    const inquiries = await Inquiry.find(filter)
-      .populate('lga', 'name')
-      .sort('-createdAt');
-    res.json({ success: true, count: inquiries.length, data: inquiries });
+    if (req.query.archived !== undefined) filter.isArchived = req.query.archived === 'true';
+
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const skip = (page - 1) * limit;
+
+    const [inquiries, total, unreadCount] = await Promise.all([
+      Inquiry.find(filter).populate('lga', 'name').sort('-createdAt').skip(skip).limit(limit),
+      Inquiry.countDocuments(filter),
+      Inquiry.countDocuments({ status: 'new', isArchived: false }),
+    ]);
+
+    res.json({
+      success: true,
+      count: inquiries.length,
+      total,
+      pages: Math.ceil(total / limit),
+      currentPage: page,
+      unreadCount,
+      data: inquiries,
+    });
   } catch (err) { next(err); }
 });
 
@@ -251,11 +271,42 @@ inquiriesRouter.get('/', protect, authorize('super_admin', 'admin', 'staff'), as
 inquiriesRouter.put('/:id/status', protect, authorize('super_admin', 'admin', 'staff'), async (req, res, next) => {
   try {
     const update = { status: req.body.status };
-    if (req.body.adminNotes) update.adminNotes = req.body.adminNotes;
+    if (req.body.adminNotes !== undefined) update.adminNotes = req.body.adminNotes;
     if (req.body.status === 'replied') { update.repliedAt = new Date(); update.repliedBy = req.user._id; }
     const inquiry = await Inquiry.findByIdAndUpdate(req.params.id, update, { new: true });
     if (!inquiry) return res.status(404).json({ success: false, message: 'Inquiry not found.' });
     res.json({ success: true, data: inquiry });
+  } catch (err) { next(err); }
+});
+
+// @route   PUT /api/inquiries/:id/archive
+// @desc    Archive or unarchive an inquiry (mail-style — reversible, doesn't
+//          touch status/read state)
+// @access  Private (admin+)
+inquiriesRouter.put('/:id/archive', protect, authorize('super_admin', 'admin', 'staff'), async (req, res, next) => {
+  try {
+    const archived = req.body.archived !== false; // default true (archive) unless explicitly false
+    const update = { isArchived: archived, archivedAt: archived ? new Date() : null };
+    const inquiry = await Inquiry.findByIdAndUpdate(req.params.id, update, { new: true });
+    if (!inquiry) return res.status(404).json({ success: false, message: 'Inquiry not found.' });
+    res.json({ success: true, data: inquiry });
+  } catch (err) { next(err); }
+});
+
+// @route   DELETE /api/inquiries/:id
+// @desc    Permanently delete an inquiry
+// @access  Private (super_admin only)
+inquiriesRouter.delete('/:id', protect, authorize('super_admin'), async (req, res, next) => {
+  try {
+    const inquiry = await Inquiry.findByIdAndDelete(req.params.id);
+    if (!inquiry) return res.status(404).json({ success: false, message: 'Inquiry not found.' });
+    await writeAuditLog(req, {
+      action: 'delete',
+      resource: 'Inquiry',
+      resourceId: inquiry._id,
+      details: `Deleted inquiry from ${inquiry.fullName} (${inquiry.email || 'no email'}), subject: ${inquiry.subject}.`,
+    });
+    res.json({ success: true, message: 'Inquiry deleted.' });
   } catch (err) { next(err); }
 });
 

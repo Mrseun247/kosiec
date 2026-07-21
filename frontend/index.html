@@ -320,14 +320,19 @@ h1,h2,h3,h4 { line-height: 1.2; }
 .login-logo p{font-size:13px;color:var(--slate-light);}
 
 /* ADMIN */
-.admin-bar{background:var(--slate);padding:12px 5%;display:flex;align-items:center;justify-content:space-between;}
+.admin-bar{background:var(--slate);padding:12px 5%;display:flex;align-items:center;justify-content:space-between;gap:12px;}
 .admin-bar h3{color:var(--white);font-size:14px;font-weight:600;}
 .admin-bar span{color:rgba(255,255,255,.6);font-size:12px;}
+.admin-hamburger{display:none;flex-direction:column;gap:5px;cursor:pointer;padding:6px;background:none;border:none;flex-shrink:0;}
+.admin-hamburger span{width:22px;height:2px;background:var(--white);border-radius:2px;display:block;}
 .admin-grid{display:grid;grid-template-columns:220px 1fr;min-height:70vh;}
 .admin-sidebar{background:var(--green);padding:24px 0;position:sticky;top:0;max-height:100vh;overflow-y:auto;align-self:start;}
 .admin-sidebar a{display:flex;align-items:center;gap:10px;padding:12px 20px;color:rgba(255,255,255,.75);font-size:13px;font-weight:500;transition:.2s;cursor:pointer;}
 .admin-sidebar a:hover,.admin-sidebar a.active{background:rgba(255,255,255,.1);color:var(--white);}
+.admin-sidebar-close{display:none;}
 .admin-content{padding:32px;background:var(--ivory);}
+.admin-panel{display:none;}
+.admin-panel.active{display:block;}
 .admin-stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px;}
 .admin-stat{background:var(--white);border-radius:10px;padding:20px;border-left:4px solid var(--green);}
 .admin-stat h4{font-size:12px;color:var(--slate-light);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;}
@@ -401,9 +406,12 @@ footer{background:#0e2e1e;padding:56px 5% 24px;}
   .downloads-grid{grid-template-columns:1fr 1fr;}
   .gallery-grid{grid-template-columns:repeat(2,1fr);}
   .footer-grid{grid-template-columns:1fr 1fr;}
+  .admin-hamburger{display:flex;}
   .admin-grid{grid-template-columns:1fr;}
-  .admin-sidebar{display:flex;flex-wrap:wrap;padding:8px;}
-  .admin-sidebar a{padding:8px 12px;font-size:12px;}
+  .admin-sidebar{display:none;position:fixed;inset:0;z-index:2000;padding:16px 0 24px;}
+  .admin-sidebar.open{display:flex;flex-direction:column;overflow-y:auto;}
+  .admin-sidebar a{padding:14px 24px;font-size:14px;}
+  .admin-sidebar-close{display:flex;align-items:center;gap:10px;padding:12px 20px;margin-bottom:8px;color:var(--white);font-size:14px;font-weight:700;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.15);}
   .admin-stat-row{grid-template-columns:1fr 1fr;}
   .admin-table{overflow-x:auto;}
   .admin-table-head,.admin-table-row{grid-template-columns:repeat(4,minmax(130px,1fr));min-width:600px;}
@@ -529,6 +537,8 @@ footer{background:#0e2e1e;padding:56px 5% 24px;}
     </div>
     <input type="hidden" id="inquiry-modal-id" value="">
     <button class="btn-primary" onclick="saveInquiryStatus()">Save</button>
+    <button class="btn-outline" id="inquiry-modal-archive-btn" style="margin-left:8px" onclick="toggleInquiryArchive()">🗄️ Archive</button>
+    <button class="btn-danger" id="inquiry-modal-delete-btn" style="display:none;margin-left:8px" onclick="deleteInquiryFromModal()">Delete</button>
     <span id="inquiry-modal-msg" style="margin-left:12px;font-size:13px;"></span>
   </div>
 </div>
@@ -863,28 +873,33 @@ footer{background:#0e2e1e;padding:56px 5% 24px;}
 <!-- ═══════════════ ADMIN ═══════════════ -->
 <section class="page-section" id="page-admin">
   <div class="admin-bar">
+    <button class="admin-hamburger" id="admin-hamburger" onclick="toggleAdminSidebar()"><span></span><span></span><span></span></button>
     <h3>⚙️ KOSIEC Admin Panel</h3>
     <span>Logged in as: <strong style="color:var(--white)" id="admin-username">Admin</strong> &nbsp;|&nbsp; <a href="#" onclick="Auth.logout()" style="color:var(--gold)">Logout</a></span>
   </div>
   <div class="admin-grid">
-    <div class="admin-sidebar">
-      <a id="sidebar-link-dashboard" onclick="jumpToAdminSection('admin-sec-dashboard')">📊 Dashboard</a>
-      <a onclick="jumpToAdminSection('admin-sec-chairman')">🧑‍💼 Chairman Photo</a>
-      <a onclick="jumpToAdminSection('admin-sec-countdown')">🗳️ Election Countdown</a>
-      <a onclick="jumpToAdminSection('admin-sec-livestream')">🔴 Live Stream</a>
-      <a onclick="jumpToAdminSection('admin-sec-publications')">📄 Publications</a>
-      <a onclick="jumpToAdminSection('admin-sec-news')">📢 News / Notices</a>
-      <a onclick="jumpToAdminSection('admin-sec-gallery')">🖼️ Gallery</a>
-      <a id="sidebar-link-elections" onclick="jumpToAdminSection('admin-sec-elections')">🗳️ Elections & Results</a>
-      <a onclick="jumpToAdminSection('admin-sec-inquiries')">✉️ Inquiries</a>
-      <a id="sidebar-link-manage-admins" onclick="jumpToAdminSection('admin-sec-manage-admins')">👥 Manage Admins</a>
-      <a id="sidebar-link-security" onclick="jumpToAdminSection('admin-sec-security')">🔐 Security Log</a>
+    <div class="admin-sidebar" id="admin-sidebar">
+      <a class="admin-sidebar-close" onclick="toggleAdminSidebar()">✕ Close Menu</a>
+      <a id="sidebar-link-dashboard" onclick="showAdminPanel('admin-dashboard-wrap','sidebar-link-dashboard')">📊 Dashboard</a>
+      <a id="sidebar-link-chairman" onclick="showAdminPanel('admin-panel-chairman','sidebar-link-chairman')">🧑‍💼 Chairman Photo</a>
+      <a id="sidebar-link-countdown" onclick="showAdminPanel('admin-panel-countdown','sidebar-link-countdown')">🗳️ Election Countdown</a>
+      <a id="sidebar-link-livestream" onclick="showAdminPanel('admin-panel-livestream','sidebar-link-livestream')">🔴 Live Stream</a>
+      <a id="sidebar-link-publications" onclick="showAdminPanel('admin-panel-publications','sidebar-link-publications')">📄 Publications</a>
+      <a id="sidebar-link-news" onclick="showAdminPanel('admin-panel-news','sidebar-link-news')">📢 News / Notices</a>
+      <a id="sidebar-link-gallery" onclick="showAdminPanel('admin-panel-gallery','sidebar-link-gallery')">🖼️ Gallery</a>
+      <a id="sidebar-link-elections" onclick="showAdminPanel('admin-elections-wrap','sidebar-link-elections')">🗳️ Elections & Results</a>
+      <a id="sidebar-link-inquiries" onclick="showAdminPanel('admin-panel-inquiries','sidebar-link-inquiries')">✉️ Inquiries</a>
+      <a id="sidebar-link-manage-admins" onclick="showAdminPanel('admin-manage-users-wrap','sidebar-link-manage-admins')">👥 Manage Admins</a>
+      <a id="sidebar-link-security" onclick="showAdminPanel('admin-security-wrap','sidebar-link-security')">🔐 Security Log</a>
       <a onclick="Router.navigate('home')" style="margin-top:14px;border-top:1px solid rgba(255,255,255,.15);padding-top:14px;">🌐 View Website</a>
     </div>
     <div class="admin-content">
       <!-- Chairman Photo Upload -->
+      <div id="admin-panel-chairman" class="admin-panel">
       <div id="admin-sec-chairman"><div id="chairman-photo-admin"></div></div>
+      </div>
 
+      <div id="admin-panel-countdown" class="admin-panel">
       <h3 id="admin-sec-countdown" style="font-family:var(--font-display);color:var(--green);margin-bottom:14px;font-size:1.1rem">🗳️ Next LGA Election Countdown</h3>
       <div class="admin-photo-section" style="margin-bottom:32px;">
         <div class="form-group"><label><input type="checkbox" id="cd-admin-active" style="width:auto;display:inline-block;margin-right:8px;">Show countdown timer on homepage</label></div>
@@ -893,7 +908,9 @@ footer{background:#0e2e1e;padding:56px 5% 24px;}
         <button class="btn-primary" onclick="saveElectionCountdown()">Save Countdown Settings</button>
         <span id="cd-admin-msg" style="margin-left:12px;font-size:13px;"></span>
       </div>
+      </div>
 
+      <div id="admin-panel-livestream" class="admin-panel">
       <h3 id="admin-sec-livestream" style="font-family:var(--font-display);color:var(--green);margin-bottom:14px;font-size:1.1rem">🔴 Election Monitoring Live Stream</h3>
       <div class="admin-photo-section" style="margin-bottom:32px;">
         <div class="form-group"><label><input type="checkbox" id="live-admin-active" style="width:auto;display:inline-block;margin-right:8px;">Show live stream on homepage</label></div>
@@ -902,7 +919,9 @@ footer{background:#0e2e1e;padding:56px 5% 24px;}
         <button class="btn-primary" onclick="saveLiveStream()">Save Live Stream Settings</button>
         <span id="live-admin-msg" style="margin-left:12px;font-size:13px;"></span>
       </div>
+      </div>
 
+      <div id="admin-panel-publications" class="admin-panel">
       <h3 id="admin-sec-publications" style="font-family:var(--font-display);color:var(--green);margin-bottom:14px;font-size:1.1rem">📄 Upload Publication / Form</h3>
       <div class="admin-photo-section" style="margin-bottom:32px;">
         <div class="form-group"><label>Title</label><input type="text" id="pub-title" placeholder="e.g. Notice of Election 2026"></div>
@@ -927,7 +946,9 @@ footer{background:#0e2e1e;padding:56px 5% 24px;}
 
         <div id="pub-list" style="margin-top:20px"></div>
       </div>
+      </div>
 
+      <div id="admin-panel-news" class="admin-panel">
       <h3 id="admin-sec-news" style="font-family:var(--font-display);color:var(--green);margin-bottom:14px;font-size:1.1rem">📢 Post News / Notice</h3>
       <div class="admin-photo-section" style="margin-bottom:32px;">
         <div class="form-group" style="background:var(--green-light);padding:16px;border-radius:8px;">
@@ -969,7 +990,9 @@ footer{background:#0e2e1e;padding:56px 5% 24px;}
 
         <div id="notice-list" style="margin-top:20px"></div>
       </div>
+      </div>
 
+      <div id="admin-panel-gallery" class="admin-panel">
       <h3 id="admin-sec-gallery" style="font-family:var(--font-display);color:var(--green);margin-bottom:14px;font-size:1.1rem">🖼️ Gallery — Add Photo Group</h3>
       <div class="admin-photo-section" style="margin-bottom:32px;">
         <p style="font-size:12px;color:var(--slate-light);margin-bottom:16px;">Photos uploaded with the same group title appear together under one caption in the public Gallery — select multiple files at once to build a group in one go.</p>
@@ -992,8 +1015,9 @@ footer{background:#0e2e1e;padding:56px 5% 24px;}
 
         <div id="gal-list" style="margin-top:20px"></div>
       </div>
+      </div>
 
-      <div id="admin-elections-wrap">
+      <div id="admin-elections-wrap" class="admin-panel">
       <h3 id="admin-sec-elections" style="font-family:var(--font-display);color:var(--green);margin-bottom:14px;font-size:1.1rem">🗳️ Elections & Results Management</h3>
       <div class="admin-photo-section" style="margin-bottom:32px;">
 
@@ -1089,7 +1113,7 @@ footer{background:#0e2e1e;padding:56px 5% 24px;}
       </div>
       </div>
 
-      <div id="admin-manage-users-wrap">
+      <div id="admin-manage-users-wrap" class="admin-panel">
       <h3 id="admin-sec-manage-admins" style="font-family:var(--font-display);color:var(--green);margin-bottom:14px;font-size:1.1rem">👥 Manage Admin Accounts</h3>
       <div class="admin-photo-section" style="margin-bottom:32px;">
         <div class="form-row">
@@ -1116,7 +1140,7 @@ footer{background:#0e2e1e;padding:56px 5% 24px;}
       </div>
       </div>
 
-      <div id="admin-dashboard-wrap">
+      <div id="admin-dashboard-wrap" class="admin-panel">
       <h2 id="admin-sec-dashboard" style="font-family:var(--font-display);color:var(--green);margin-bottom:20px">Dashboard Overview</h2>
       <div class="admin-stat-row">
         <div class="admin-stat"><h4>Elections</h4><div class="val" id="admin-stat-elections">—</div></div>
@@ -1125,13 +1149,26 @@ footer{background:#0e2e1e;padding:56px 5% 24px;}
         <div class="admin-stat"><h4>New Inquiries</h4><div class="val" id="admin-stat-inquiries">—</div></div>
       </div>
       </div>
-      <h3 id="admin-sec-inquiries" style="font-family:var(--font-display);color:var(--green);margin-bottom:14px;font-size:1.1rem">Recent Inquiries</h3>
+      <div id="admin-panel-inquiries" class="admin-panel">
+      <h3 id="admin-sec-inquiries" style="font-family:var(--font-display);color:var(--green);margin-bottom:14px;font-size:1.1rem;display:flex;align-items:center;justify-content:space-between;">
+        <span>Inquiries</span>
+      </h3>
+      <div style="margin-bottom:12px;display:flex;gap:8px;">
+        <button class="btn-outline" id="inq-tab-inbox" onclick="switchInquiryTab('inbox')">📥 Inbox <span id="inq-unread-badge" style="display:none;background:var(--red);color:var(--white);border-radius:10px;padding:1px 7px;font-size:11px;margin-left:4px;"></span></button>
+        <button class="btn-outline" id="inq-tab-archived" onclick="switchInquiryTab('archived')">🗄️ Archived</button>
+      </div>
       <div class="admin-table">
-        <div class="admin-table-head" style="grid-template-columns:1.2fr 1fr .9fr .7fr .6fr;"><div>Name</div><div>Subject</div><div>Date</div><div>Status</div><div>Actions</div></div>
+        <div class="admin-table-head" style="grid-template-columns:1.2fr 1fr .9fr .7fr 1fr;"><div>Name</div><div>Subject</div><div>Date</div><div>Status</div><div>Actions</div></div>
         <div id="admin-inquiries-table-body"></div>
       </div>
+      <div style="display:flex;align-items:center;justify-content:center;gap:14px;margin-top:14px;">
+        <button class="btn-outline" id="inq-prev-btn" style="padding:6px 14px;font-size:12px" onclick="changeInquiryPage(-1)">← Prev</button>
+        <span id="inq-page-label" style="font-size:13px;color:var(--slate-light);"></span>
+        <button class="btn-outline" id="inq-next-btn" style="padding:6px 14px;font-size:12px" onclick="changeInquiryPage(1)">Next →</button>
+      </div>
+      </div>
 
-      <div id="admin-security-wrap">
+      <div id="admin-security-wrap" class="admin-panel">
       <h3 id="admin-sec-security" style="font-family:var(--font-display);color:var(--green);margin:32px 0 14px;font-size:1.1rem">🔐 Login Security (Last 24 Hours)</h3>
       <div class="admin-stat-row">
         <div class="admin-stat" style="border-left-color:#28a745"><h4>Successful Logins</h4><div class="val" id="admin-stat-logins-today">—</div></div>

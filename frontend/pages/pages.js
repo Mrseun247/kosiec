@@ -755,9 +755,25 @@ window.submitLogin = async function () {
 // ============================================================
 // pages/admin.js
 // ============================================================
-window.jumpToAdminSection = function (id) {
-  const el = document.getElementById(id);
-  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+// Admin panel is single-page-with-tabs: only one .admin-panel is shown at a
+// time (picked via the sidebar), instead of one long scrolling page.
+window.showAdminPanel = function (panelId, linkId) {
+  document.querySelectorAll('.admin-panel').forEach(p => p.classList.remove('active'));
+  const panel = document.getElementById(panelId);
+  if (panel) panel.classList.add('active');
+
+  document.querySelectorAll('.admin-sidebar a[id^="sidebar-link-"]').forEach(a => a.classList.remove('active'));
+  const link = document.getElementById(linkId);
+  if (link) link.classList.add('active');
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  // On mobile the sidebar is a full-screen overlay — selecting a panel closes it
+  document.getElementById('admin-sidebar')?.classList.remove('open');
+};
+
+window.toggleAdminSidebar = function () {
+  document.getElementById('admin-sidebar')?.classList.toggle('open');
 };
 
 window.load_admin = async function () {
@@ -768,15 +784,17 @@ window.load_admin = async function () {
 
   applyRoleBasedAdminVisibility();
 
-  // "Recent Inquiries" is visible to admin and staff too, so it's fetched
-  // on its own rather than inside the super_admin-only stats Promise.all below.
-  try {
-    const inquiriesRes = await api.inquiries.getAll();
-    setText('admin-stat-inquiries', (inquiriesRes.data || []).filter(i => i.status === 'new').length);
-    renderAdminInquiries((inquiriesRes.data || []).slice(0, 8));
-  } catch (err) {
-    console.warn('[admin] Inquiries load error:', err.message);
+  // Land on Dashboard for super_admin, or the first panel an admin/staff
+  // account actually has access to.
+  if (Auth.isSuperAdmin()) {
+    showAdminPanel('admin-dashboard-wrap', 'sidebar-link-dashboard');
+  } else {
+    showAdminPanel('admin-panel-chairman', 'sidebar-link-chairman');
   }
+
+  // Inquiries inbox is visible to admin and staff too, so it's loaded
+  // independently rather than inside the super_admin-only stats below.
+  loadInquiriesTab('inbox', 1);
 
   // Load photo upload UI for chairman
   loadChairmanPhotoUpload();
@@ -2056,22 +2074,87 @@ window.uploadChairmanPhoto = async function(memberId) {
   }
 };
 
+// ============================================================
+// Admin — Inquiries Inbox (mail-style: Inbox / Archived, paginated)
+// ============================================================
 let adminInquiriesCache = [];
+let inquiryTabState = { tab: 'inbox', page: 1, pages: 1 };
+const INQUIRY_PAGE_SIZE = 20;
 
-function renderAdminInquiries(inquiries) {
-  adminInquiriesCache = inquiries;
+async function loadInquiriesTab(tab, page) {
+  inquiryTabState.tab = tab;
+  inquiryTabState.page = page;
+
+  const inboxBtn = document.getElementById('inq-tab-inbox');
+  const archivedBtn = document.getElementById('inq-tab-archived');
+  if (inboxBtn) inboxBtn.className = tab === 'inbox' ? 'btn-primary' : 'btn-outline';
+  if (archivedBtn) archivedBtn.className = tab === 'archived' ? 'btn-primary' : 'btn-outline';
+
   const el = document.getElementById('admin-inquiries-table-body');
   if (!el) return;
-  if (!inquiries.length) { el.innerHTML = '<div style="padding:16px;color:var(--slate-light);">No inquiries yet.</div>'; return; }
+  el.innerHTML = '<div class="loading">Loading inquiries…</div>';
+  try {
+    const params = `?archived=${tab === 'archived'}&page=${page}&limit=${INQUIRY_PAGE_SIZE}`;
+    const res = await api.inquiries.getAll(params);
+    adminInquiriesCache = res.data || [];
+    inquiryTabState.pages = res.pages || 1;
+
+    setText('admin-stat-inquiries', res.unreadCount ?? 0);
+    const unreadBadge = document.getElementById('inq-unread-badge');
+    if (unreadBadge) {
+      if (res.unreadCount > 0) { unreadBadge.textContent = res.unreadCount; unreadBadge.style.display = 'inline-block'; }
+      else unreadBadge.style.display = 'none';
+    }
+
+    renderAdminInquiries(adminInquiriesCache);
+
+    const pageLabel = document.getElementById('inq-page-label');
+    if (pageLabel) pageLabel.textContent = `Page ${res.currentPage || 1} of ${res.pages || 1} (${res.total || 0} total)`;
+    const prevBtn = document.getElementById('inq-prev-btn');
+    const nextBtn = document.getElementById('inq-next-btn');
+    if (prevBtn) prevBtn.disabled = (res.currentPage || 1) <= 1;
+    if (nextBtn) nextBtn.disabled = (res.currentPage || 1) >= (res.pages || 1);
+  } catch (err) {
+    el.innerHTML = `<p class="error-state">Could not load inquiries. ${err.message}</p>`;
+  }
+}
+
+window.switchInquiryTab = function (tab) { loadInquiriesTab(tab, 1); };
+
+window.changeInquiryPage = function (delta) {
+  const next = inquiryTabState.page + delta;
+  if (next < 1 || next > inquiryTabState.pages) return;
+  loadInquiriesTab(inquiryTabState.tab, next);
+};
+
+function renderAdminInquiries(inquiries) {
+  const el = document.getElementById('admin-inquiries-table-body');
+  if (!el) return;
+  if (!inquiries.length) {
+    el.innerHTML = `<div style="padding:16px;color:var(--slate-light);">${inquiryTabState.tab === 'archived' ? 'No archived inquiries.' : 'Inbox is empty.'}</div>`;
+    return;
+  }
   el.innerHTML = inquiries.map(i => `
-    <div class="admin-table-row" style="grid-template-columns:1.2fr 1fr .9fr .7fr .6fr;">
-      <div>${i.fullName}</div>
+    <div class="admin-table-row" style="grid-template-columns:1.2fr 1fr .9fr .7fr 1fr;${i.status === 'new' ? 'font-weight:700;' : ''}">
+      <div>${i.status === 'new' ? '● ' : ''}${i.fullName}</div>
       <div>${i.subject?.replace(/_/g,' ') || '—'}</div>
       <div>${new Date(i.createdAt).toLocaleDateString('en-NG')}</div>
       <div><span class="badge-${i.status === 'new' ? 'pending' : 'active'}">${i.status}</span></div>
-      <div><button class="btn-outline" style="padding:3px 10px;font-size:11px;" onclick="viewInquiryDetail('${i._id}')">View</button></div>
+      <div>
+        <button class="btn-outline" style="padding:3px 10px;font-size:11px;" onclick="viewInquiryDetail('${i._id}')">View</button>
+        <button class="btn-outline" style="padding:3px 10px;font-size:11px;margin-left:4px;" onclick="quickArchiveInquiry('${i._id}', ${i.isArchived ? 'false' : 'true'})">${i.isArchived ? 'Unarchive' : 'Archive'}</button>
+      </div>
     </div>`).join('');
 }
+
+window.quickArchiveInquiry = async function (id, archived) {
+  try {
+    await api.inquiries.archive(id, archived);
+    loadInquiriesTab(inquiryTabState.tab, inquiryTabState.page);
+  } catch (err) {
+    alert('Could not update: ' + err.message);
+  }
+};
 
 window.viewInquiryDetail = function (id) {
   const i = adminInquiriesCache.find(x => x._id === id);
@@ -2088,6 +2171,8 @@ window.viewInquiryDetail = function (id) {
   document.getElementById('inquiry-modal-status').value = i.status || 'new';
   document.getElementById('inquiry-modal-notes').value = i.adminNotes || '';
   document.getElementById('inquiry-modal-msg').textContent = '';
+  document.getElementById('inquiry-modal-archive-btn').textContent = i.isArchived ? '📥 Move to Inbox' : '🗄️ Archive';
+  document.getElementById('inquiry-modal-delete-btn').style.display = i.isArchived && Auth.isSuperAdmin() ? 'inline-flex' : 'none';
   document.getElementById('inquiry-modal').classList.add('open');
 
   // Viewing a "new" inquiry naturally marks it read, same as any inbox
@@ -2102,6 +2187,7 @@ window.viewInquiryDetail = function (id) {
 
 window.closeInquiryModal = function () {
   document.getElementById('inquiry-modal').classList.remove('open');
+  loadInquiriesTab(inquiryTabState.tab, inquiryTabState.page);
 };
 
 window.saveInquiryStatus = async function () {
@@ -2116,6 +2202,34 @@ window.saveInquiryStatus = async function () {
     if (cached) { cached.status = data.status; cached.adminNotes = data.adminNotes; }
     renderAdminInquiries(adminInquiriesCache);
     if (msg) msg.textContent = '✅ Saved.';
+  } catch (err) {
+    if (msg) msg.textContent = '❌ Failed: ' + err.message;
+  }
+};
+
+window.toggleInquiryArchive = async function () {
+  const msg = document.getElementById('inquiry-modal-msg');
+  const id = document.getElementById('inquiry-modal-id').value;
+  const i = adminInquiriesCache.find(x => x._id === id);
+  const archiving = !(i && i.isArchived);
+  try {
+    if (msg) msg.textContent = archiving ? 'Archiving…' : 'Moving to Inbox…';
+    await api.inquiries.archive(id, archiving);
+    if (msg) msg.textContent = archiving ? '✅ Archived.' : '✅ Moved to Inbox.';
+    closeInquiryModal();
+  } catch (err) {
+    if (msg) msg.textContent = '❌ Failed: ' + err.message;
+  }
+};
+
+window.deleteInquiryFromModal = async function () {
+  if (!confirm('Permanently delete this inquiry? This cannot be undone.')) return;
+  const msg = document.getElementById('inquiry-modal-msg');
+  const id = document.getElementById('inquiry-modal-id').value;
+  try {
+    await api.inquiries.delete(id);
+    document.getElementById('inquiry-modal').classList.remove('open');
+    loadInquiriesTab(inquiryTabState.tab, inquiryTabState.page);
   } catch (err) {
     if (msg) msg.textContent = '❌ Failed: ' + err.message;
   }
