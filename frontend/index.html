@@ -330,7 +330,7 @@ h1,h2,h3,h4 { line-height: 1.2; }
 .admin-sidebar a{display:flex;align-items:center;gap:10px;padding:12px 20px;color:rgba(255,255,255,.75);font-size:13px;font-weight:500;transition:.2s;cursor:pointer;}
 .admin-sidebar a:hover,.admin-sidebar a.active{background:rgba(255,255,255,.1);color:var(--white);}
 .admin-sidebar-close{display:none;}
-.admin-content{padding:32px;background:var(--ivory);}
+.admin-content{padding:32px;background:var(--ivory);min-width:0;}
 .admin-panel{display:none;}
 .admin-panel.active{display:block;}
 .admin-stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px;}
@@ -413,8 +413,17 @@ footer{background:#0e2e1e;padding:56px 5% 24px;}
   .admin-sidebar a{padding:14px 24px;font-size:14px;}
   .admin-sidebar-close{display:flex;align-items:center;gap:10px;padding:12px 20px;margin-bottom:8px;color:var(--white);font-size:14px;font-weight:700;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.15);}
   .admin-stat-row{grid-template-columns:1fr 1fr;}
-  .admin-table{overflow-x:auto;}
-  .admin-table-head,.admin-table-row{grid-template-columns:repeat(4,minmax(130px,1fr));min-width:600px;}
+  /* Only the Activity Log table (User/Action/Details/Time — needs real
+     room per column) scrolls horizontally on mobile. Every other admin
+     table (Publications, News, Inquiries, Manage Admins, Candidates,
+     Results) reflows to fit instead, since forcing them to the same
+     600px min-width caused page-wide horizontal overflow. */
+  .admin-logs-table{overflow-x:auto;}
+  .admin-logs-table .admin-table-head,.admin-logs-table .admin-table-row{grid-template-columns:repeat(4,minmax(130px,1fr));min-width:600px;}
+  .admin-table:not(.admin-logs-table) .admin-table-head,
+  .admin-table:not(.admin-logs-table) .admin-table-row{grid-template-columns:1fr!important;gap:4px;padding:12px 14px;}
+  .admin-table:not(.admin-logs-table) .admin-table-head{display:none;}
+  .admin-table:not(.admin-logs-table) .admin-table-row > div:last-child{margin-top:6px;}
   .chairman-card{grid-template-columns:1fr;text-align:center;gap:24px;}
   .team-grid-inner{grid-template-columns:1fr 1fr;}
   .form-row{grid-template-columns:1fr;}
@@ -536,10 +545,12 @@ footer{background:#0e2e1e;padding:56px 5% 24px;}
       <div class="form-group"><label>Internal Notes (optional)</label><input type="text" id="inquiry-modal-notes" placeholder="Not visible to the public"></div>
     </div>
     <input type="hidden" id="inquiry-modal-id" value="">
-    <button class="btn-primary" onclick="saveInquiryStatus()">Save</button>
-    <button class="btn-outline" id="inquiry-modal-archive-btn" style="margin-left:8px" onclick="toggleInquiryArchive()">🗄️ Archive</button>
-    <button class="btn-danger" id="inquiry-modal-delete-btn" style="display:none;margin-left:8px" onclick="deleteInquiryFromModal()">Delete</button>
-    <span id="inquiry-modal-msg" style="margin-left:12px;font-size:13px;"></span>
+    <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;">
+      <button class="btn-primary" onclick="saveInquiryStatus()">Save</button>
+      <button class="btn-outline" id="inquiry-modal-archive-btn" onclick="toggleInquiryArchive()">🗄️ Archive</button>
+      <button class="btn-danger" id="inquiry-modal-delete-btn" style="display:none" onclick="deleteInquiryFromModal()">Delete</button>
+      <span id="inquiry-modal-msg" style="font-size:13px;"></span>
+    </div>
   </div>
 </div>
 
@@ -882,6 +893,7 @@ footer{background:#0e2e1e;padding:56px 5% 24px;}
       <a class="admin-sidebar-close" onclick="toggleAdminSidebar()">✕ Close Menu</a>
       <a id="sidebar-link-dashboard" onclick="showAdminPanel('admin-dashboard-wrap','sidebar-link-dashboard')">📊 Dashboard</a>
       <a id="sidebar-link-chairman" onclick="showAdminPanel('admin-panel-chairman','sidebar-link-chairman')">🧑‍💼 Chairman Photo</a>
+      <a id="sidebar-link-ticker" onclick="showAdminPanel('admin-panel-ticker','sidebar-link-ticker')">📢 Latest Updates Ticker</a>
       <a id="sidebar-link-countdown" onclick="showAdminPanel('admin-panel-countdown','sidebar-link-countdown')">🗳️ Election Countdown</a>
       <a id="sidebar-link-livestream" onclick="showAdminPanel('admin-panel-livestream','sidebar-link-livestream')">🔴 Live Stream</a>
       <a id="sidebar-link-publications" onclick="showAdminPanel('admin-panel-publications','sidebar-link-publications')">📄 Publications</a>
@@ -897,6 +909,18 @@ footer{background:#0e2e1e;padding:56px 5% 24px;}
       <!-- Chairman Photo Upload -->
       <div id="admin-panel-chairman" class="admin-panel">
       <div id="admin-sec-chairman"><div id="chairman-photo-admin"></div></div>
+      </div>
+
+      <div id="admin-panel-ticker" class="admin-panel">
+      <h3 id="admin-sec-ticker" style="font-family:var(--font-display);color:var(--green);margin-bottom:14px;font-size:1.1rem">📢 Homepage Latest Updates Ticker</h3>
+      <div class="admin-photo-section" style="margin-bottom:32px;">
+        <p style="font-size:12px;color:var(--slate-light);margin-bottom:16px;">One message per line. These scroll across the gold ticker bar at the top of every public page.</p>
+        <div class="form-group"><label>Ticker Messages</label><textarea id="ticker-admin-messages" style="min-height:140px" placeholder="📢 KOSIEC announces 2026 LGA Election timetable — Registration begins July 15, 2026&#10;✅ 2025 Kogi LGA Elections completed across all 21 Local Government Areas"></textarea></div>
+        <div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;">
+          <button class="btn-primary" onclick="saveTickerMessages()">Save Ticker Messages</button>
+          <span id="ticker-admin-msg" style="font-size:13px;"></span>
+        </div>
+      </div>
       </div>
 
       <div id="admin-panel-countdown" class="admin-panel">
@@ -940,9 +964,11 @@ footer{background:#0e2e1e;padding:56px 5% 24px;}
         </div>
         <div class="form-group"><label>File (PDF, DOCX, XLSX, or Image) <span id="pub-file-hint" style="text-transform:none;font-weight:400;color:var(--slate-light)"></span></label><input type="file" id="pub-file" accept=".pdf,.doc,.docx,.xls,.xlsx,image/*"></div>
         <input type="hidden" id="pub-edit-id" value="">
-        <button class="btn-primary" id="pub-submit-btn" onclick="uploadPublication()">Upload Publication</button>
-        <button class="btn-outline" id="pub-cancel-btn" style="display:none;margin-left:10px" onclick="cancelPublicationEdit()">Cancel Edit</button>
-        <span id="pub-msg" style="margin-left:12px;font-size:13px;"></span>
+        <div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;">
+          <button class="btn-primary" id="pub-submit-btn" onclick="uploadPublication()">Upload Publication</button>
+          <button class="btn-outline" id="pub-cancel-btn" style="display:none" onclick="cancelPublicationEdit()">Cancel Edit</button>
+          <span id="pub-msg" style="font-size:13px;"></span>
+        </div>
 
         <div id="pub-list" style="margin-top:20px"></div>
       </div>
@@ -984,9 +1010,11 @@ footer{background:#0e2e1e;padding:56px 5% 24px;}
         <div class="form-group"><label>Featured Image (optional)</label><input type="file" id="notice-image" accept="image/*"></div>
         <div class="form-group"><label><input type="checkbox" id="notice-publish-now" checked style="width:auto;display:inline-block;margin-right:8px;">Publish immediately (uncheck to save as draft)</label></div>
         <input type="hidden" id="notice-edit-id" value="">
-        <button class="btn-primary" id="notice-submit-btn" onclick="postNotice()">Post Notice</button>
-        <button class="btn-outline" id="notice-cancel-btn" style="display:none;margin-left:10px" onclick="cancelNoticeEdit()">Cancel Edit</button>
-        <span id="notice-msg" style="margin-left:12px;font-size:13px;"></span>
+        <div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;">
+          <button class="btn-primary" id="notice-submit-btn" onclick="postNotice()">Post Notice</button>
+          <button class="btn-outline" id="notice-cancel-btn" style="display:none" onclick="cancelNoticeEdit()">Cancel Edit</button>
+          <span id="notice-msg" style="font-size:13px;"></span>
+        </div>
 
         <div id="notice-list" style="margin-top:20px"></div>
       </div>
@@ -1038,9 +1066,11 @@ footer{background:#0e2e1e;padding:56px 5% 24px;}
         </div>
         <div class="form-group"><label><input type="checkbox" id="el-statewide" checked style="width:auto;display:inline-block;margin-right:8px;">Statewide (all 21 LGAs)</label></div>
         <input type="hidden" id="el-edit-id" value="">
-        <button class="btn-primary" id="el-submit-btn" onclick="createElection()">Create Election</button>
-        <button class="btn-outline" id="el-cancel-btn" style="display:none;margin-left:10px" onclick="cancelElectionEdit()">Cancel Edit</button>
-        <span id="el-msg" style="margin-left:12px;font-size:13px;"></span>
+        <div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;">
+          <button class="btn-primary" id="el-submit-btn" onclick="createElection()">Create Election</button>
+          <button class="btn-outline" id="el-cancel-btn" style="display:none" onclick="cancelElectionEdit()">Cancel Edit</button>
+          <span id="el-msg" style="font-size:13px;"></span>
+        </div>
 
         <div id="el-list" style="margin-top:16px"></div>
 
@@ -1069,9 +1099,11 @@ footer{background:#0e2e1e;padding:56px 5% 24px;}
         <div class="form-group" id="cand-running-mate-wrap"><label>Running Mate / Vice-Chairman (Chairmanship only)</label><input type="text" id="cand-running-mate"></div>
         <div class="form-group"><label>Candidate Photo (optional)</label><input type="file" id="cand-photo" accept="image/*"></div>
         <input type="hidden" id="cand-edit-id" value="">
-        <button class="btn-primary" id="cand-submit-btn" onclick="addCandidate()">Add Candidate</button>
-        <button class="btn-outline" id="cand-cancel-btn" style="display:none;margin-left:10px" onclick="cancelCandidateEdit()">Cancel Edit</button>
-        <span id="cand-msg" style="margin-left:12px;font-size:13px;"></span>
+        <div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;">
+          <button class="btn-primary" id="cand-submit-btn" onclick="addCandidate()">Add Candidate</button>
+          <button class="btn-outline" id="cand-cancel-btn" style="display:none" onclick="cancelCandidateEdit()">Cancel Edit</button>
+          <span id="cand-msg" style="font-size:13px;"></span>
+        </div>
 
         <div id="cand-list" style="margin-top:16px"></div>
 
@@ -1104,10 +1136,12 @@ footer{background:#0e2e1e;padding:56px 5% 24px;}
         <div class="form-group"><label>Returning Officer</label><input type="text" id="res-officer"></div>
 
         <input type="hidden" id="res-edit-id" value="">
-        <button class="btn-primary" id="res-save-draft-btn" onclick="saveResult(false)">Save as Draft</button>
-        <button class="btn-primary" id="res-save-publish-btn" style="margin-left:10px" onclick="saveResult(true)">Save & Publish</button>
-        <button class="btn-outline" id="res-cancel-btn" style="display:none;margin-left:10px" onclick="cancelResultEdit()">Cancel Edit</button>
-        <span id="res-msg" style="margin-left:12px;font-size:13px;"></span>
+        <div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;">
+          <button class="btn-primary" id="res-save-draft-btn" onclick="saveResult(false)">Save as Draft</button>
+          <button class="btn-primary" id="res-save-publish-btn" onclick="saveResult(true)">Save & Publish</button>
+          <button class="btn-outline" id="res-cancel-btn" style="display:none" onclick="cancelResultEdit()">Cancel Edit</button>
+          <span id="res-msg" style="font-size:13px;"></span>
+        </div>
 
         <div id="res-list" style="margin-top:20px"></div>
       </div>
@@ -1131,9 +1165,11 @@ footer{background:#0e2e1e;padding:56px 5% 24px;}
           </div>
         </div>
         <input type="hidden" id="newadmin-edit-id" value="">
-        <button class="btn-primary" id="newadmin-submit-btn" onclick="createAdminUser()">Create Account</button>
-        <button class="btn-outline" id="newadmin-cancel-btn" style="display:none;margin-left:10px" onclick="cancelAdminUserEdit()">Cancel Edit</button>
-        <span id="newadmin-msg" style="margin-left:12px;font-size:13px;"></span>
+        <div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;">
+          <button class="btn-primary" id="newadmin-submit-btn" onclick="createAdminUser()">Create Account</button>
+          <button class="btn-outline" id="newadmin-cancel-btn" style="display:none" onclick="cancelAdminUserEdit()">Cancel Edit</button>
+          <span id="newadmin-msg" style="font-size:13px;"></span>
+        </div>
         <div id="newadmin-password-reveal" style="display:none;margin-top:14px;padding:12px 16px;background:var(--green-light);border-radius:8px;font-size:13px;color:var(--green);"></div>
 
         <div id="admin-users-list" style="margin-top:20px"></div>
@@ -1191,7 +1227,7 @@ footer{background:#0e2e1e;padding:56px 5% 24px;}
           </div>
           <button class="btn-danger" id="clear-log-btn" style="display:none" onclick="clearActivityLog()">🗑 Clear Log</button>
         </div>
-        <div class="admin-table">
+        <div class="admin-table admin-logs-table">
           <div class="admin-table-head" id="admin-logs-table-head"><div>User</div><div>Action</div><div>Details</div><div>Time</div></div>
           <div id="admin-logs-table-body"></div>
         </div>

@@ -799,6 +799,9 @@ window.load_admin = async function () {
   // Load photo upload UI for chairman
   loadChairmanPhotoUpload();
 
+  // Load ticker messages
+  loadTickerAdmin();
+
   // Load election countdown settings
   loadElectionCountdownAdmin();
 
@@ -1843,6 +1846,43 @@ window.cancelResultEdit = function () {
   document.getElementById('res-save-draft-btn').textContent = 'Save as Draft';
   document.getElementById('res-save-publish-btn').textContent = 'Save & Publish';
   document.getElementById('res-cancel-btn').style.display = 'none';
+};
+
+async function loadTickerAdmin() {
+  const textarea = document.getElementById('ticker-admin-messages');
+  if (!textarea) return;
+
+  try {
+    const { data: settings } = await api.settings.getAll();
+    const setting = (settings || []).find(s => s.key === 'ticker_messages');
+    const messages = Array.isArray(setting?.value) ? setting.value : [];
+    textarea.value = messages.join('\n');
+  } catch (err) {
+    console.warn('[admin] Could not load ticker settings:', err.message);
+  }
+}
+
+window.saveTickerMessages = async function () {
+  const msg = document.getElementById('ticker-admin-msg');
+  const textarea = document.getElementById('ticker-admin-messages');
+  const messages = textarea.value.split('\n').map(m => m.trim()).filter(Boolean);
+
+  if (!messages.length) {
+    if (msg) msg.textContent = '❌ Add at least one message.';
+    return;
+  }
+
+  try {
+    if (msg) msg.textContent = 'Saving…';
+    await api.settings.update('ticker_messages', {
+      value: messages, isPublic: true,
+      description: 'Scrolling ticker messages shown at the top of the website',
+    });
+    if (msg) msg.textContent = '✅ Ticker messages saved.';
+    load_home(); // Refresh ticker if home is loaded behind the scenes
+  } catch (err) {
+    if (msg) msg.textContent = '❌ Save failed: ' + err.message;
+  }
 };
 
 async function loadElectionCountdownAdmin() {
