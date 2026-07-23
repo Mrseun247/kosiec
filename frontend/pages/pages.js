@@ -527,22 +527,23 @@ window.load_gallery = async function () {
       groups[key].push(item);
       return groups;
     }, {});
+    const groupEntries = Object.entries(groupedItems);
 
     grid.innerHTML = `
-      ${Object.entries(groupedItems).map(([caption, items]) => `
+      ${groupEntries.map(([caption, items], groupIdx) => `
         <div class="gallery-group">
           <div class="gallery-group-header" onclick="toggleGalleryGroup(this)">
             <span>📸 ${caption}</span>
             <span class="gallery-toggle">▾</span>
           </div>
           <div class="gallery-group-body" data-cols="${computeGalleryColumns(items.length, 5)}" data-cols-md="${computeGalleryColumns(items.length, 3)}" data-cols-sm="${computeGalleryColumns(items.length, 2)}">
-            ${items.map(item => `
-              <div class="gallery-item ${isVideoGalleryItem(item) ? 'video-item' : ''}" onclick="openGalleryItem('${item._id}')">
+            ${items.map((item, itemIdx) => `
+              <div class="gallery-item ${isVideoGalleryItem(item) ? 'video-item' : ''}" onclick="openGalleryItem(${groupIdx}, ${itemIdx})">
                 ${getGalleryMediaMarkup(item)}
               </div>`).join('')}
           </div>
         </div>`).join('')}`;
-    renderGalleryModal(galleryItems);
+    renderGalleryModal(groupEntries.map(([, items]) => items));
   } catch (err) {
     grid.innerHTML = `<p class="error-state">Could not load gallery. ${err.message}</p>`;
   }
@@ -554,12 +555,15 @@ window.toggleGalleryGroup = function(header) {
   group.classList.toggle('open');
 };
 
-function renderGalleryModal(items) {
+function renderGalleryModal(groups) {
+  window.__galleryGroups = groups;
   if (document.getElementById('gallery-modal')) return;
   const modal = document.createElement('div');
   modal.id = 'gallery-modal';
   modal.className = 'gallery-modal';
   modal.innerHTML = `
+    <button class="gallery-modal-nav gallery-modal-prev" onclick="galleryModalNav(-1)" aria-label="Previous image">‹</button>
+    <button class="gallery-modal-nav gallery-modal-next" onclick="galleryModalNav(1)" aria-label="Next image">›</button>
     <div class="gallery-modal-box">
       <button class="gallery-modal-close" onclick="closeGalleryModal()" aria-label="Close">✕</button>
       <div class="gallery-modal-body">
@@ -572,45 +576,82 @@ function renderGalleryModal(items) {
   modal.addEventListener('click', (e) => {
     if (e.target.id === 'gallery-modal') closeGalleryModal();
   });
-  window.__galleryItems = items;
+  document.addEventListener('keydown', (e) => {
+    const m = document.getElementById('gallery-modal');
+    if (!m || !m.classList.contains('open')) return;
+    if (e.key === 'ArrowLeft') galleryModalNav(-1);
+    else if (e.key === 'ArrowRight') galleryModalNav(1);
+    else if (e.key === 'Escape') closeGalleryModal();
+  });
 }
 
-window.openGalleryItem = function(id) {
-  const items = window.__galleryItems || [];
-  const item = items.find(i => i._id === id);
-  if (!item) return;
-  const modal = document.getElementById('gallery-modal');
-  const img = document.getElementById('gallery-modal-image');
-  const title = document.getElementById('gallery-modal-title');
-  const caption = document.getElementById('gallery-modal-caption');
-  if (!modal || !img || !title || !caption) return;
-  const isVideo = isVideoGalleryItem(item);
-  if (isVideo) {
+function getGalleryModalMediaMarkup(item) {
+  const safeTitle = (item.title || 'Video').replace(/"/g, '&quot;');
+  if (isVideoGalleryItem(item)) {
     const src = item.videoUrl || item.filePath || '';
     const youtubeMatch = src.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]+)/i);
     const vimeoMatch = src.match(/vimeo\.com\/(\d+)/i);
     if (youtubeMatch) {
-      img.outerHTML = `<iframe class="gallery-modal-image" src="https://www.youtube.com/embed/${youtubeMatch[1]}" title="${item.title || 'Video'}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
-    } else if (vimeoMatch) {
-      img.outerHTML = `<iframe class="gallery-modal-image" src="https://player.vimeo.com/video/${vimeoMatch[1]}" title="${item.title || 'Video'}" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>`;
-    } else {
-      img.outerHTML = `<iframe class="gallery-modal-image" srcdoc="<video controls playsinline preload='metadata' style='width:100%;height:100%;object-fit:cover;background:#0e2e1e;' src='${src.replace(/'/g, '%27')}'></video>" title="${item.title || 'Video'}" loading="lazy"></iframe>`;
+      return `<iframe id="gallery-modal-image" class="gallery-modal-image" src="https://www.youtube.com/embed/${youtubeMatch[1]}" title="${safeTitle}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
     }
-  } else {
-    img.src = item.filePath || '';
-    img.alt = item.title || 'Gallery item';
+    if (vimeoMatch) {
+      return `<iframe id="gallery-modal-image" class="gallery-modal-image" src="https://player.vimeo.com/video/${vimeoMatch[1]}" title="${safeTitle}" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>`;
+    }
+    const safeSrc = src.replace(/'/g, '%27');
+    return `<iframe id="gallery-modal-image" class="gallery-modal-image" srcdoc="<video controls playsinline preload='metadata' style='width:100%;height:100%;object-fit:cover;background:#0e2e1e;' src='${safeSrc}'></video>" title="${safeTitle}" loading="lazy"></iframe>`;
   }
+  return `<img id="gallery-modal-image" class="gallery-modal-image" src="${item.filePath || ''}" alt="${(item.title || 'Gallery item').replace(/"/g, '&quot;')}">`;
+}
+
+function showGalleryItem(groupIdx, itemIdx) {
+  const groups = window.__galleryGroups || [];
+  const group = groups[groupIdx];
+  const item = group && group[itemIdx];
+  if (!item) return;
+
+  window.__galleryCurrentGroupIdx = groupIdx;
+  window.__galleryCurrentItemIdx = itemIdx;
+
+  const modal = document.getElementById('gallery-modal');
+  const title = document.getElementById('gallery-modal-title');
+  const caption = document.getElementById('gallery-modal-caption');
+  const mediaEl = document.getElementById('gallery-modal-image');
+  if (!modal || !title || !caption || !mediaEl) return;
+
+  mediaEl.outerHTML = getGalleryModalMediaMarkup(item);
   title.textContent = item.title || 'Gallery item';
   caption.textContent = item.description || item.title || '';
+
+  const showNav = group.length > 1;
+  const prevBtn = modal.querySelector('.gallery-modal-prev');
+  const nextBtn = modal.querySelector('.gallery-modal-next');
+  if (prevBtn) prevBtn.style.display = showNav ? '' : 'none';
+  if (nextBtn) nextBtn.style.display = showNav ? '' : 'none';
+
   modal.classList.add('open');
+}
+
+window.openGalleryItem = function(groupIdx, itemIdx) {
+  showGalleryItem(groupIdx, itemIdx);
+};
+
+window.galleryModalNav = function(direction) {
+  const groups = window.__galleryGroups || [];
+  const group = groups[window.__galleryCurrentGroupIdx];
+  if (!group) return;
+  let newIdx = window.__galleryCurrentItemIdx + direction;
+  if (newIdx < 0) newIdx = group.length - 1;
+  if (newIdx >= group.length) newIdx = 0;
+  showGalleryItem(window.__galleryCurrentGroupIdx, newIdx);
 };
 
 window.closeGalleryModal = function() {
   const modal = document.getElementById('gallery-modal');
   if (modal) modal.classList.remove('open');
+  // Stop any playing video by clearing the iframe's src
+  const mediaEl = document.getElementById('gallery-modal-image');
+  if (mediaEl && mediaEl.tagName === 'IFRAME') mediaEl.src = '';
 };
-
-window.openGalleryItem = window.openGalleryItem;
 
 // ============================================================
 // pages/downloads.js
@@ -644,8 +685,11 @@ window.viewDocument = async function(id, title, path) {
   const titleEl = document.getElementById('doc-modal-title');
   if (!modal || !frame) return;
   titleEl.textContent = title || 'Document';
-  // #toolbar=0&navpanes=0 hides the browser PDF viewer's built-in download/print controls (Chrome/Edge).
-  frame.src = path + '#toolbar=0&navpanes=0&scrollbar=1';
+  // Most mobile browsers (iOS Safari, mobile Chrome) have no built-in PDF
+  // renderer for iframes — a direct #toolbar=0 embed only works on desktop
+  // browsers with a native PDF plugin (Chrome/Edge). Google's viewer renders
+  // the PDF as a web page instead, so it works consistently on every device.
+  frame.src = `https://docs.google.com/viewer?url=${encodeURIComponent(path)}&embedded=true`;
   modal.classList.add('open');
   try { await api.downloads.trackGet(id); } catch {}
 };
@@ -2287,4 +2331,3 @@ function getInitials(name = '') {
   return name.split(' ').slice(0,2).map(w => w[0]).join('').toUpperCase();
 }
 
-window.openGalleryItem = function(id) { /* extend with lightbox */ };
