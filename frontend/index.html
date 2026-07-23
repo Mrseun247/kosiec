@@ -143,7 +143,7 @@ h1,h2,h3,h4 { line-height: 1.2; }
 
 /* HERO */
 .hero{min-height:88vh;background:linear-gradient(135deg,var(--green) 0%,#0e2e1e 55%,#1a3d28 100%);display:flex;align-items:center;padding:60px 5% 80px;position:relative;overflow:hidden;}
-.hero::before{content:'';position:absolute;right:-100px;top:-100px;width:600px;height:600px;border-radius:50%;background:radial-gradient(circle,rgba(201,168,76,.12) 0%,transparent 70%);}
+.hero::before{content:'';position:absolute;right:-100px;top:-100px;width:600px;height:600px;border-radius:50%;background:radial-gradient(circle,rgba(201,168,76,.12) 0%,transparent 70%);pointer-events:none;}
 .hero-grid{display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center;max-width:1200px;margin:0 auto;width:100%;}
 .hero-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(201,168,76,.15);border:1px solid rgba(201,168,76,.3);color:var(--gold-light);padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;letter-spacing:.5px;margin-bottom:20px;}
 .hero h1{font-family:var(--font-display);color:var(--white);font-size:clamp(2rem,4.5vw,3.4rem);font-weight:900;line-height:1.15;margin-bottom:20px;}
@@ -165,7 +165,7 @@ h1,h2,h3,h4 { line-height: 1.2; }
 /* SERVICES */
 .services-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;}
 .service-card{background:var(--white);border:1px solid var(--border);border-radius:12px;padding:32px 28px;transition:.25s;position:relative;overflow:hidden;}
-.service-card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:var(--gold);transform:scaleX(0);transform-origin:left;transition:.3s;}
+.service-card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:var(--gold);transform:scaleX(0);transform-origin:left;transition:.3s;pointer-events:none;}
 .service-card:hover{box-shadow:var(--shadow);transform:translateY(-3px);}
 .service-card:hover::before{transform:scaleX(1);}
 .service-icon{width:52px;height:52px;background:var(--green-light);border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:18px;font-size:24px;}
@@ -311,7 +311,7 @@ h1,h2,h3,h4 { line-height: 1.2; }
 /* TESTIMONIALS */
 .testi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;}
 .testi-card{background:var(--white);border:1px solid var(--border);border-radius:12px;padding:28px;position:relative;}
-.testi-card::before{content:'"';font-family:var(--font-display);font-size:5rem;color:var(--green-light);position:absolute;top:-10px;left:20px;line-height:1;}
+.testi-card::before{content:'"';font-family:var(--font-display);font-size:5rem;color:var(--green-light);position:absolute;top:-10px;left:20px;line-height:1;pointer-events:none;}
 .stars{color:var(--gold);font-size:14px;margin-bottom:4px;}
 .testi-text{font-size:14px;color:var(--slate);line-height:1.7;margin-bottom:18px;margin-top:24px;}
 .testi-author{display:flex;align-items:center;gap:12px;}
