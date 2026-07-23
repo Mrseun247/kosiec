@@ -60,7 +60,7 @@ app.use(helmet({
       // any HTTPS image host is allowed; only non-HTTPS/script sources are blocked.
       imgSrc: ["'self'", 'data:', 'https:'],
       mediaSrc: ["'self'", 'https://res.cloudinary.com'],
-      frameSrc: ["'self'", 'https://www.youtube.com', 'https://player.vimeo.com', 'https://www.facebook.com'],
+      frameSrc: ["'self'", 'https://www.youtube.com', 'https://player.vimeo.com', 'https://www.facebook.com', 'https://docs.google.com'],
       connectSrc: ["'self'", 'https://res.cloudinary.com'],
     },
   },

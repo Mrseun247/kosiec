@@ -671,7 +671,7 @@ window.load_downloads = async function () {
           <h4>${d.title}</h4>
           <p>${d.description || ''}</p>
           ${d.fileSize ? `<span class="dl-size">${d.fileSize} · ${d.downloadCount} views</span>` : ''}
-          <button type="button" class="dl-btn" onclick='viewDocument(${JSON.stringify(d._id)}, ${JSON.stringify(d.title)}, ${JSON.stringify(d.filePath)})'>👁 View Document</button>
+          <button type="button" class="dl-btn" onclick='viewDocument(${jsAttr(d._id)}, ${jsAttr(d.title)}, ${jsAttr(d.filePath)})'>👁 View Document</button>
         </div>
       </div>`).join('');
   } catch (err) {
@@ -1194,7 +1194,7 @@ async function loadAdminGalleryList() {
             <div>${(items[0].category || '').replace(/_/g, ' ')}</div>
             <div>${items.length}</div>
             <div>
-              <button class="btn-danger" onclick='deleteGalleryGroup(${JSON.stringify(title)})'>Delete Group</button>
+              <button class="btn-danger" onclick='deleteGalleryGroup(${jsAttr(title)})'>Delete Group</button>
             </div>
           </div>`).join('')}
       </div>`;
@@ -2325,6 +2325,17 @@ window.deleteInquiryFromModal = async function () {
 function setText(id, val) {
   const el = document.getElementById(id);
   if (el) el.textContent = val;
+}
+
+// JSON.stringify() produces a double-quoted JS string literal, which is
+// safe from the JS engine's point of view — but when that gets embedded
+// inside an HTML onclick='...' attribute (single-quote delimited), a raw
+// apostrophe in the content (e.g. a title like "Stakeholders' Meeting")
+// still closes the HTML attribute early and corrupts the markup. Escaping
+// it as &#39; lets the browser's HTML parser decode it back to a real
+// apostrophe before the string ever reaches the JS engine.
+function jsAttr(value) {
+  return JSON.stringify(value).replace(/'/g, '&#39;');
 }
 
 function getInitials(name = '') {
