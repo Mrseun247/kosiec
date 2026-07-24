@@ -452,18 +452,22 @@ footer{background:#0e2e1e;padding:56px 5% 24px;}
   .mvv-grid{grid-template-columns:1fr;}
   .about-img-block{text-align:center;}
   .founded-badge{position:static;display:inline-block;margin-top:-40px;}
-  /* Footer columns centered and team-card photo wraps with justified text — mobile only */
+  /* Footer columns centered — mobile only */
   .footer-col{text-align:center;}
-  .team-card{text-align:left;overflow:hidden;}
-  .team-photo-wrap{float:left;margin:0 14px 10px 0;}
-  .team-photo-img{width:80px;height:80px;margin:0;}
-  .team-photo{width:80px;height:80px;margin:0;font-size:1.4rem;}
-  .team-card p{text-align:justify;}
-  /* Commission Chairman card — smaller floated photo on narrow screens so the name/badge still fit beside it */
-  .chairman-full-card .chairman-photo-wrap.large{margin:0 14px 10px 0;}
+  /* Team card — center photo + name on narrow screens instead of floating (no room left for text to wrap beside it) */
+  .team-card{text-align:center;overflow:visible;}
+  .team-photo-wrap{float:none;margin:0 auto 12px;}
+  .team-photo-img{width:90px;height:90px;margin:0 auto;}
+  .team-photo{width:90px;height:90px;margin:0 auto;font-size:1.4rem;}
+  .team-card p{text-align:left;}
+  /* Commission Chairman card — same fix: center photo + name/badges on top, bio below, instead of floating */
+  .chairman-full-card{text-align:center;}
+  .chairman-full-card .chairman-photo-wrap.large{float:none;display:inline-block;margin:0 auto 16px;}
   .chairman-full-card .chairman-photo.large,
-  .chairman-full-card .chairman-photo-placeholder.large{width:90px;height:90px;font-size:1.5rem;}
+  .chairman-full-card .chairman-photo-placeholder.large{width:130px;height:130px;font-size:1.8rem;}
   .chairman-full-card h2{font-size:1.25rem;}
+  .chairman-full-card p{text-align:left;}
+  .chairman-details{align-items:center;}
 }
 
 /* ── Article modal (duplicated here — css/main.css can silently fail to
