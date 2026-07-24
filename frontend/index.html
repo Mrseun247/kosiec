@@ -355,7 +355,7 @@ h1,h2,h3,h4 { line-height: 1.2; }
 /* ABOUT */
 .about-grid{display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center;}
 .about-img-placeholder{background:linear-gradient(135deg,var(--green) 0%,#0e2e1e 100%);border-radius:16px;height:420px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;color:var(--white);}
-.about-img-placeholder .big-seal{width:280px;height:280px;max-width:80%;background:rgba(255,255,255,.95);border-radius:50%;padding:10px;border:4px solid rgba(201,168,76,.5);box-shadow:0 12px 32px rgba(0,0,0,.25);display:flex;align-items:center;justify-content:center;overflow:hidden;}
+.about-img-placeholder .big-seal{width:280px;height:280px;max-width:80%;aspect-ratio:1/1;background:rgba(255,255,255,.95);border-radius:50%;padding:10px;border:4px solid rgba(201,168,76,.5);box-shadow:0 12px 32px rgba(0,0,0,.25);display:flex;align-items:center;justify-content:center;overflow:hidden;}
 .about-img-placeholder .big-seal img{width:100%;height:100%;object-fit:contain;border-radius:50%;display:block;}
 .about-content h2{font-family:var(--font-display);font-size:2rem;color:var(--green);margin-bottom:16px;font-weight:800;}
 .about-content p{color:var(--slate-light);font-size:15px;line-height:1.75;margin-bottom:14px;}
@@ -452,6 +452,7 @@ footer{background:#0e2e1e;padding:56px 5% 24px;}
   .mvv-grid{grid-template-columns:1fr;}
   .about-img-block{text-align:center;}
   .founded-badge{position:static;display:inline-block;margin-top:-40px;}
+  .about-img-placeholder .big-seal{width:170px;height:170px;}
   /* Footer columns centered — mobile only */
   .footer-col{text-align:center;}
   /* Team card — center photo + name on narrow screens instead of floating (no room left for text to wrap beside it) */
@@ -820,7 +821,7 @@ footer{background:#0e2e1e;padding:56px 5% 24px;}
       <div class="faq-item"><div class="faq-q">Who is eligible to vote in LGA elections?<div class="faq-toggle">+</div></div><div class="faq-a">Any Nigerian citizen who is 18 years or older, resident in Kogi State, and duly registered as a voter is eligible to vote. You must present a valid Permanent Voter Card (PVC) on election day.</div></div>
       <div class="faq-item"><div class="faq-q">How do I register to vote in Kogi State LGA elections?<div class="faq-toggle">+</div></div><div class="faq-a">During designated registration periods, eligible residents visit their LGA KOSIEC office with valid ID. Watch for official KOSIEC announcements on registration dates and locations.</div></div>
       <div class="faq-item"><div class="faq-q">How can I check election results?<div class="faq-toggle">+</div></div><div class="faq-a">Official results are published on this website under "Results" following every election. They are also displayed at LGA collation centers. For certified copies, contact our Lokoja office.</div></div>
-      <div class="faq-item"><div class="faq-q">How do I contact KOSIEC?<div class="faq-toggle">+</div></div><div class="faq-a">Phone: 09169490757 or 08035904252. WhatsApp: 09169490757 (24 hours). Email: erimamman2@gmail.com. Physical office: No. 1 Ado Ibrahim Road, GRA, Lokoja. Office hours: Weekdays 9am–5pm.</div></div>
+      <div class="faq-item"><div class="faq-q">How do I contact KOSIEC?<div class="faq-toggle">+</div></div><div class="faq-a">Phone: 09169490757 or 08035904252. WhatsApp: 09169490757 (24 hours). Email: info@kosiec.org. Physical office: No. 1 Ado Ibrahim Road, GRA, Lokoja. Office hours: Weekdays 9am–5pm.</div></div>
       <div class="faq-item"><div class="faq-q">How do political parties participate in LGA elections?<div class="faq-toggle">+</div></div><div class="faq-a">Parties must be registered with INEC at federal level and comply with KOSIEC's accreditation requirements. They must conduct primaries within the stipulated period and submit candidate credentials before the filing deadline.</div></div>
       <div class="faq-item"><div class="faq-q">What should I do if I witness electoral malpractice?<div class="faq-toggle">+</div></div><div class="faq-a">Report immediately to the nearest KOSIEC officer at the polling unit, your Ward Collation Officer, or contact the Commission's office. KOSIEC takes electoral malpractice very seriously.</div></div>
       <div class="faq-item"><div class="faq-q">How many LGAs does KOSIEC cover?<div class="faq-toggle">+</div></div><div class="faq-a">KOSIEC covers all 21 LGAs: Adavi, Ajaokuta, Ankpa, Bassa, Dekina, Ibaji, Idah, Igalamela-Odolu, Ijumu, Kabba/Bunu, Kogi, Lokoja, Mopa-Muro, Ofu, Ogori/Magongo, Okehi, Okene, Olamaboro, Omala, Yagba East, and Yagba West.</div></div>
@@ -846,7 +847,7 @@ footer{background:#0e2e1e;padding:56px 5% 24px;}
         <p>KOSIEC is available for questions on electoral procedures, voter registration, results, and all matters relating to LGA elections. WhatsApp inquiries answered around the clock.</p>
         <div class="contact-detail"><div class="contact-icon">📍</div><div class="contact-detail-text"><h4>Office Address</h4><p>No. 1 Ado Ibrahim Road, GRA<br>Lokoja, Kogi State, Nigeria</p></div></div>
         <div class="contact-detail"><div class="contact-icon">📞</div><div class="contact-detail-text"><h4>Phone Numbers</h4><p>09169490757 (Primary)<br>08035904252 (Secondary)</p></div></div>
-        <div class="contact-detail"><div class="contact-icon">📧</div><div class="contact-detail-text"><h4>Email</h4><p>erimamman2@gmail.com</p></div></div>
+        <div class="contact-detail"><div class="contact-icon">📧</div><div class="contact-detail-text"><h4>Email</h4><p>info@kosiec.org</p></div></div>
         <div class="contact-detail"><div class="contact-icon">🕐</div><div class="contact-detail-text"><h4>Office Hours</h4><p>Weekdays: 9:00am – 5:00pm<br>WhatsApp: 24 Hours</p></div></div>
         <a href="https://wa.me/2349169490757" target="_blank" class="wa-btn">💬 Chat on WhatsApp (24/7)</a>
       </div>
@@ -1261,7 +1262,7 @@ footer{background:#0e2e1e;padding:56px 5% 24px;}
       <h3>4. Data Security</h3><p>KOSIEC employs appropriate security measures including encrypted database storage (MongoDB Atlas) and HTTPS transport. No internet transmission is completely secure.</p>
       <h3>5. Electoral Information</h3><p>All electoral information published on this website is official. For certified or legally binding documents, contact the Commission directly.</p>
       <h3>6. Terms of Use</h3><ul><li>This website is for informational purposes relating to KOSIEC's electoral mandate.</li><li>Users must be 18+ to access the voter portal.</li><li>Unauthorized use for misinformation is prohibited.</li><li>KOSIEC reserves the right to update this policy at any time.</li></ul>
-      <h3>7. Contact</h3><p>Questions? Contact KOSIEC at erimamman2@gmail.com or No. 1 Ado Ibrahim Road, GRA, Lokoja, Kogi State.</p>
+      <h3>7. Contact</h3><p>Questions? Contact KOSIEC at info@kosiec.org or No. 1 Ado Ibrahim Road, GRA, Lokoja, Kogi State.</p>
     </div>
   </div></div>
 </section>
@@ -1297,7 +1298,7 @@ footer{background:#0e2e1e;padding:56px 5% 24px;}
     <div class="footer-col"><h4>Contact</h4>
       <a href="tel:+2349169490757">📞 09169490757</a>
       <a href="tel:+2348035904252">📞 08035904252</a>
-      <a href="mailto:erimamman2@gmail.com">📧 erimamman2@gmail.com</a>
+      <a href="mailto:info@kosiec.org">📧 info@kosiec.org</a>
       <a href="https://wa.me/2349169490757" target="_blank">💬 WhatsApp (24/7)</a>
       <a>🕐 Mon–Fri: 9am – 5pm</a>
     </div>
