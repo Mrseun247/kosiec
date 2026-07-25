@@ -182,13 +182,18 @@ galleryRouter.delete('/:id', protect, authorize('super_admin', 'admin'), async (
 const inquiriesRouter = express.Router();
 
 // Nodemailer transporter (reused)
-const getTransporter = () =>
-  nodemailer.createTransport({
+const getTransporter = () => {
+  const port = parseInt(process.env.EMAIL_PORT) || 587;
+  return nodemailer.createTransport({
     host: process.env.EMAIL_HOST,
-    port: parseInt(process.env.EMAIL_PORT) || 587,
-    secure: false,
+    port,
+    // Port 465 is implicit TLS (secure:true) — the connection is encrypted
+    // from the start. Port 587/25 use STARTTLS instead (secure:false, then
+    // upgraded). Using the wrong mode for the port makes the handshake fail.
+    secure: port === 465,
     auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
   });
+};
 
 // @route   POST /api/inquiries
 // @desc    Submit contact form inquiry (public)
