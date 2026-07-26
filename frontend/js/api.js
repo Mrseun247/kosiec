@@ -1,7 +1,7 @@
 // js/api.js — Centralized API client for KOSIEC frontend
 // All backend calls go through this module
 
-const API_BASE = 'http://localhost:5000/api'; // ← Change to production URL when deployed
+const API_BASE = 'https://kosiec.org/api'; // ← Change to production URL when deployed
 
 const api = {
   // ── Core fetch wrapper ──────────────────────────────────
