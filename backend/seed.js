@@ -105,7 +105,11 @@ const seed = async () => {
     console.log('🗑️  Cleared: Users, LGAs, TeamMembers, Settings, AdminLogs');
 
     // ── 2. Seed LGAs ───────────────────────────────────────
-    const lgas = await LGA.insertMany(KOGI_LGAS);
+    const lgasWithSlugs = KOGI_LGAS.map(l => ({
+  ...l,
+  slug: l.name.toLowerCase().replace(/[^a-z0-9]/g, '-'),
+}));
+const lgas = await LGA.insertMany(lgasWithSlugs);
     console.log(`✅ Seeded ${lgas.length} LGAs`);
 
     // ── 3. Seed Super Admin ────────────────────────────────
