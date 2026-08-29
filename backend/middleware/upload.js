@@ -68,7 +68,7 @@ const upload = multer({
   // A single shared limit covers both branches above — video/audio files need far more
   // headroom than the old 5MB image/doc default, and letting images share that ceiling
   // is harmless since they'll never actually approach it.
-  limits: { fileSize: parseInt(process.env.MAX_MEDIA_FILE_SIZE) || 50 * 1024 * 1024 },
+  limits: { fileSize: parseInt(process.env.MAX_MEDIA_FILE_SIZE) || 100 * 1024 * 1024 },
 });
 
 // Helper for routes to tell a video upload apart from an audio one after the fact.
