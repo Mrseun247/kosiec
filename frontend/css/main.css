@@ -162,6 +162,10 @@ h1,h2,h3,h4 { line-height: 1.2; }
 .modal-box h2 { font-family: var(--font-display); color: var(--green); font-size: 1.6rem; margin-bottom: 8px; }
 #modal-content { color: var(--slate); font-size: 15px; line-height: 1.8; }
 #modal-content p { margin-bottom: 14px; }
+#modal-media:empty { display: none; }
+#modal-media { margin-bottom: 20px; border-radius: 8px; overflow: hidden; background: #0e2e1e; }
+#modal-media video { width: 100%; max-height: 60vh; display: block; }
+#modal-media audio { width: 100%; display: block; padding: 16px; box-sizing: border-box; }
 
 /* ── Admin photo upload ───────────────────────────────────── */
 .admin-photo-section { background: var(--ivory); border-radius: 12px; padding: 24px; margin-bottom: 24px; }

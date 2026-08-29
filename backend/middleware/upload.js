@@ -8,10 +8,17 @@ const FOLDER_MAP = {
   teamPhoto: 'kosiec/team',
   galleryImage: 'kosiec/gallery',
   featuredImage: 'kosiec/news',
+  newsMedia: 'kosiec/news-media',
   partyLogo: 'kosiec/parties',
   document: 'kosiec/documents',
   timetableDoc: 'kosiec/documents',
 };
+
+// Fields that carry an uploaded video/audio file rather than an image/document —
+// Cloudinary uses resource_type 'video' for both (its API's actual convention).
+const MEDIA_FIELDS = new Set(['newsMedia']);
+const VIDEO_EXT = /mp4|webm|mov|m4v/;
+const AUDIO_EXT = /mp3|wav|m4a|ogg|aac/;
 
 const storage = new CloudinaryStorage({
   cloudinary,
@@ -21,6 +28,9 @@ const storage = new CloudinaryStorage({
     const isPdf = ext === 'pdf';
     const isOfficeDoc = ext === 'docx' || ext === 'xlsx';
 
+    if (MEDIA_FIELDS.has(file.fieldname)) {
+      return { folder, resource_type: 'video', allowed_formats: ['mp4', 'webm', 'mov', 'm4v', 'mp3', 'wav', 'm4a', 'ogg', 'aac'] };
+    }
     if (isPdf) {
       // Cloudinary's 'image' resource type renders PDFs (page previews,
       // inline viewing with a correct application/pdf content-type) as
@@ -38,9 +48,13 @@ const storage = new CloudinaryStorage({
 });
 
 const fileFilter = (req, file, cb) => {
+  const ext = file.originalname.split('.').pop().toLowerCase();
+  if (MEDIA_FIELDS.has(file.fieldname)) {
+    if (VIDEO_EXT.test(ext) || AUDIO_EXT.test(ext)) return cb(null, true);
+    return cb(new Error('Only video (mp4, webm, mov, m4v) or audio (mp3, wav, m4a, ogg, aac) files are allowed.'));
+  }
   const imageTypes = /jpeg|jpg|png|gif|webp/;
   const docTypes = /pdf|docx|xlsx/;
-  const ext = file.originalname.split('.').pop().toLowerCase();
   if (imageTypes.test(ext) || docTypes.test(ext)) {
     cb(null, true);
   } else {
@@ -51,7 +65,18 @@ const fileFilter = (req, file, cb) => {
 const upload = multer({
   storage,
   fileFilter,
-  limits: { fileSize: parseInt(process.env.MAX_FILE_SIZE) || 5 * 1024 * 1024 },
+  // A single shared limit covers both branches above — video/audio files need far more
+  // headroom than the old 5MB image/doc default, and letting images share that ceiling
+  // is harmless since they'll never actually approach it.
+  limits: { fileSize: parseInt(process.env.MAX_MEDIA_FILE_SIZE) || 50 * 1024 * 1024 },
 });
+
+// Helper for routes to tell a video upload apart from an audio one after the fact.
+upload.mediaKind = (originalname) => {
+  const ext = (originalname || '').split('.').pop().toLowerCase();
+  if (VIDEO_EXT.test(ext)) return 'video';
+  if (AUDIO_EXT.test(ext)) return 'audio';
+  return 'none';
+};
 
 module.exports = upload;

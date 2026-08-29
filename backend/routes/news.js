@@ -183,6 +183,11 @@ router.post('/extract-link', protect, authorize('super_admin', 'admin', 'staff')
   }
 });
 
+const newsUpload = upload.fields([
+  { name: 'featuredImage', maxCount: 1 },
+  { name: 'newsMedia', maxCount: 1 },
+]);
+
 // @route   POST /api/news
 // @desc    Create article
 // @access  Private (admin+)
@@ -190,11 +195,16 @@ router.post(
   '/',
   protect,
   authorize('super_admin', 'admin', 'staff'),
-  upload.single('featuredImage'),
+  newsUpload,
   async (req, res, next) => {
     try {
       const data = { ...req.body, author: req.user._id, authorName: req.user.fullName };
-      if (req.file) data.featuredImage = req.file.path;
+      if (req.files?.featuredImage?.[0]) data.featuredImage = req.files.featuredImage[0].path;
+      const mediaFile = req.files?.newsMedia?.[0];
+      if (mediaFile) {
+        data.mediaUrl = mediaFile.path;
+        data.mediaType = upload.mediaKind(mediaFile.originalname);
+      }
       if (data.tags && typeof data.tags === 'string') {
         data.tags = data.tags.split(',').map((t) => t.trim().toLowerCase());
       }
@@ -211,11 +221,20 @@ router.put(
   '/:id',
   protect,
   authorize('super_admin', 'admin', 'staff'),
-  upload.single('featuredImage'),
+  newsUpload,
   async (req, res, next) => {
     try {
       const data = { ...req.body };
-      if (req.file) data.featuredImage = req.file.path;
+      if (req.files?.featuredImage?.[0]) data.featuredImage = req.files.featuredImage[0].path;
+      const mediaFile = req.files?.newsMedia?.[0];
+      if (mediaFile) {
+        data.mediaUrl = mediaFile.path;
+        data.mediaType = upload.mediaKind(mediaFile.originalname);
+      } else if (data.removeMedia === 'true') {
+        data.mediaUrl = '';
+        data.mediaType = 'none';
+      }
+      delete data.removeMedia;
       if (data.tags && typeof data.tags === 'string') {
         data.tags = data.tags.split(',').map((t) => t.trim().toLowerCase());
       }

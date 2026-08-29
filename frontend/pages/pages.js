@@ -153,9 +153,10 @@ function newsCard(a) {
   const emoji = { official_notice:'📋', civic_education:'🎓', election_news:'🗳️',
     press_release:'📢', announcement:'📣', registration:'📋', results:'📊',
     training:'🎓', partnership:'🤝', other:'📰' };
+  const hasMedia = a.mediaType === 'video' || a.mediaType === 'audio';
   return `
     <div class="news-card" onclick="openArticle('${a.slug}')">
-      <div class="news-img">${a.featuredImage ? `<img src="${a.featuredImage}" alt="${a.title}">` : (emoji[a.category] || '📰')}</div>
+      <div class="news-img${hasMedia ? ' has-media' : ''}">${a.featuredImage ? `<img src="${a.featuredImage}" alt="${a.title}">` : (emoji[a.category] || '📰')}</div>
       <div class="news-body">
         <div class="news-tag">${(a.category || 'news').replace(/_/g,' ')}</div>
         <h3>${a.title}</h3>
@@ -174,6 +175,17 @@ window.openArticle = async function(slug) {
     document.getElementById('modal-content').innerHTML   = article.content;
     document.getElementById('modal-date').textContent    =
       article.publishedAt ? new Date(article.publishedAt).toLocaleDateString('en-NG',{dateStyle:'long'}) : '';
+
+    const mediaEl = document.getElementById('modal-media');
+    if (mediaEl) {
+      if (article.mediaType === 'video' && article.mediaUrl) {
+        mediaEl.innerHTML = `<video controls playsinline preload="metadata" src="${article.mediaUrl}"></video>`;
+      } else if (article.mediaType === 'audio' && article.mediaUrl) {
+        mediaEl.innerHTML = `<audio controls preload="metadata" src="${article.mediaUrl}"></audio>`;
+      } else {
+        mediaEl.innerHTML = '';
+      }
+    }
     modal.classList.add('open');
   } catch (err) { alert('Could not load article: ' + err.message); }
 };
@@ -185,6 +197,8 @@ window.closeArticleModal = function () {
   // playing instead of continuing muted-off-screen in the background.
   const content = document.getElementById('modal-content');
   if (content) content.innerHTML = '';
+  const media = document.getElementById('modal-media');
+  if (media) media.innerHTML = '';
 };
 
 // ============================================================
@@ -1294,6 +1308,14 @@ window.postNotice = async function () {
     fd.append('featuredImage', extractedImage);
   }
 
+  const mediaInput = document.getElementById('notice-media');
+  const removeMediaBox = document.getElementById('notice-media-remove');
+  if (mediaInput?.files.length) {
+    fd.append('newsMedia', mediaInput.files[0]);
+  } else if (removeMediaBox?.checked) {
+    fd.append('removeMedia', 'true');
+  }
+
   try {
     if (editId) {
       if (msg) msg.textContent = 'Updating…';
@@ -1308,6 +1330,8 @@ window.postNotice = async function () {
       document.getElementById('notice-excerpt').value = '';
       document.getElementById('notice-content').value = '';
       imgInput.value = '';
+      if (mediaInput) mediaInput.value = '';
+      document.getElementById('notice-media-current').style.display = 'none';
       document.getElementById('notice-link-url').value = '';
       document.getElementById('notice-extracted-image').value = '';
       document.getElementById('notice-video-url').value = '';
@@ -1358,6 +1382,20 @@ window.editNotice = async function (id) {
     document.getElementById('notice-excerpt').value = a.excerpt || '';
     document.getElementById('notice-content').value = a.content || '';
     document.getElementById('notice-publish-now').checked = a.status === 'published';
+
+    const mediaInput = document.getElementById('notice-media');
+    const mediaCurrent = document.getElementById('notice-media-current');
+    const mediaLabel = document.getElementById('notice-media-current-label');
+    const removeMediaBox = document.getElementById('notice-media-remove');
+    if (mediaInput) mediaInput.value = '';
+    if (removeMediaBox) removeMediaBox.checked = false;
+    if (a.mediaType === 'video' || a.mediaType === 'audio') {
+      if (mediaLabel) mediaLabel.textContent = `${a.mediaType === 'video' ? '🎬 Video' : '🎵 Audio'} file attached`;
+      if (mediaCurrent) mediaCurrent.style.display = 'block';
+    } else if (mediaCurrent) {
+      mediaCurrent.style.display = 'none';
+    }
+
     document.getElementById('notice-submit-btn').textContent = 'Update Notice';
     document.getElementById('notice-cancel-btn').style.display = 'inline-flex';
     document.getElementById('notice-title').scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -1372,6 +1410,9 @@ window.cancelNoticeEdit = function () {
   document.getElementById('notice-excerpt').value = '';
   document.getElementById('notice-content').value = '';
   document.getElementById('notice-image').value = '';
+  document.getElementById('notice-media').value = '';
+  document.getElementById('notice-media-current').style.display = 'none';
+  document.getElementById('notice-media-remove').checked = false;
   document.getElementById('notice-category').value = 'announcement';
   document.getElementById('notice-publish-now').checked = true;
   document.getElementById('notice-submit-btn').textContent = 'Post Notice';

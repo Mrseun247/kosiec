@@ -256,8 +256,9 @@ h1,h2,h3,h4 { line-height: 1.2; }
 .news-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;}
 .news-card{background:var(--white);border:1px solid var(--border);border-radius:12px;overflow:hidden;transition:.25s;cursor:pointer;}
 .news-card:hover{box-shadow:var(--shadow);transform:translateY(-2px);}
-.news-img{height:180px;background:linear-gradient(135deg,var(--green-light),var(--ivory));display:flex;align-items:center;justify-content:center;font-size:40px;overflow:hidden;}
+.news-img{height:180px;background:linear-gradient(135deg,var(--green-light),var(--ivory));display:flex;align-items:center;justify-content:center;font-size:40px;overflow:hidden;position:relative;}
 .news-img img{width:100%;height:100%;object-fit:cover;}
+.news-img.has-media::after{content:'▶';position:absolute;top:10px;right:10px;z-index:1;background:rgba(0,0,0,.55);color:var(--white);width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;}
 .news-body{padding:20px;}
 .news-tag{font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;}
 .news-card h3{font-family:var(--font-display);font-size:1rem;color:var(--green);margin-bottom:8px;line-height:1.4;}
@@ -549,6 +550,10 @@ footer{background:#0e2e1e;padding:56px 5% 24px;}
 .modal-box h2{font-family:var(--font-display);color:var(--green);font-size:1.6rem;margin-bottom:8px;}
 #modal-content{color:var(--slate);font-size:15px;line-height:1.8;}
 #modal-content p{margin-bottom:14px;}
+#modal-media:empty{display:none;}
+#modal-media{margin-bottom:20px;border-radius:8px;overflow:hidden;background:#0e2e1e;}
+#modal-media video{width:100%;max-height:60vh;display:block;}
+#modal-media audio{width:100%;display:block;padding:16px;box-sizing:border-box;}
 
 /* ── Document viewer modal (view-only downloads) ──────────── */
 .doc-modal-box{max-width:960px;}
@@ -580,6 +585,7 @@ footer{background:#0e2e1e;padding:56px 5% 24px;}
     <button class="modal-close" onclick="closeArticleModal()">✕</button>
     <div class="modal-date" id="modal-date"></div>
     <h2 id="modal-title"></h2>
+    <div id="modal-media"></div>
     <div id="modal-content"></div>
   </div>
 </div>
@@ -1089,6 +1095,14 @@ footer{background:#0e2e1e;padding:56px 5% 24px;}
         <div class="form-group"><label>Excerpt (short summary shown on cards)</label><textarea id="notice-excerpt" style="min-height:60px"></textarea></div>
         <div class="form-group"><label>Full Content</label><textarea id="notice-content" style="min-height:140px" placeholder="Full notice text…"></textarea></div>
         <div class="form-group"><label>Featured Image (optional)</label><input type="file" id="notice-image" accept="image/*"></div>
+        <div class="form-group">
+          <label>Video or Audio Attachment (optional — plays in the article modal)</label>
+          <input type="file" id="notice-media" accept="video/mp4,video/webm,video/quicktime,.mov,.m4v,audio/mpeg,audio/wav,audio/mp4,.m4a,audio/ogg,audio/aac">
+          <div id="notice-media-current" style="display:none;margin-top:8px;font-size:12px;color:var(--slate-light);">
+            🎬 Current attachment: <span id="notice-media-current-label"></span>
+            &nbsp;<label style="display:inline-flex;align-items:center;gap:4px;font-weight:normal;"><input type="checkbox" id="notice-media-remove" style="width:auto;">Remove it</label>
+          </div>
+        </div>
         <div class="form-group"><label><input type="checkbox" id="notice-publish-now" checked style="width:auto;display:inline-block;margin-right:8px;">Publish immediately (uncheck to save as draft)</label></div>
         <input type="hidden" id="notice-edit-id" value="">
         <div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;">

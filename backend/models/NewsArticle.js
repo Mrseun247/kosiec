@@ -41,6 +41,17 @@ const NewsArticleSchema = new mongoose.Schema(
     featuredImage: {
       type: String, // File path or URL
     },
+    // Optional uploaded video/audio attachment — plays in the article modal,
+    // separate from featuredImage (a thumbnail) and from a pasted external
+    // YouTube/Vimeo link (which gets embedded directly into `content` instead).
+    mediaType: {
+      type: String,
+      enum: ['none', 'video', 'audio'],
+      default: 'none',
+    },
+    mediaUrl: {
+      type: String, // Cloudinary secure URL of the uploaded video/audio file
+    },
     status: {
       type: String,
       enum: ['draft', 'published', 'archived'],
