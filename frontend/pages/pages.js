@@ -1261,8 +1261,11 @@ window.extractNoticeFromLink = async function () {
       const mediaLabel = document.getElementById('notice-media-current-label');
       if (mediaLabel) mediaLabel.textContent = `${data.mediaType === 'video' ? '🎬 Video' : '🎵 Audio'} link detected — will play in the article modal`;
       if (mediaCurrent) mediaCurrent.style.display = 'block';
-      if (!document.getElementById('notice-content').value.trim()) {
-        document.getElementById('notice-content').value = data.excerpt ? `<p>${data.excerpt}</p>` : '<p></p>';
+      // A raw file link carries no scrapable title/description — leave Content
+      // genuinely empty (rather than an empty <p></p>, which looks like a bug)
+      // so the admin writes their own, unless something is already typed there.
+      if (data.excerpt && !document.getElementById('notice-content').value.trim()) {
+        document.getElementById('notice-content').value = `<p>${data.excerpt}</p>`;
       }
     } else if (data.isVideo) {
       document.getElementById('notice-video-url').value = data.videoUrl || url;
@@ -1295,7 +1298,11 @@ window.extractNoticeFromLink = async function () {
       preview.style.display = 'none';
     }
 
-    if (status) status.textContent = '✅ Extracted — review the fields below before posting.';
+    if (status) {
+      status.textContent = data.isDirectMedia
+        ? `✅ ${data.mediaType === 'video' ? 'Video' : 'Audio'} attached — now type a Title and Content for the article below.`
+        : '✅ Extracted — review the fields below before posting.';
+    }
   } catch (err) {
     if (status) status.textContent = '❌ Extraction failed: ' + err.message;
   } finally {
