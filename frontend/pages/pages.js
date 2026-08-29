@@ -1253,8 +1253,10 @@ window.extractNoticeFromLink = async function () {
       // A direct video/audio file link (e.g. copied from Cloudinary) — plays via the
       // same mediaType/mediaUrl mechanism a real upload uses, in #modal-media, not
       // embedded into the content body like a YouTube/Vimeo iframe is.
-      document.getElementById('notice-extracted-media-url').value = data.mediaUrl;
-      document.getElementById('notice-extracted-media-type').value = data.mediaType;
+      const extractedUrlField = document.getElementById('notice-extracted-media-url');
+      const extractedTypeField = document.getElementById('notice-extracted-media-type');
+      if (extractedUrlField) extractedUrlField.value = data.mediaUrl;
+      if (extractedTypeField) extractedTypeField.value = data.mediaType;
       const mediaCurrent = document.getElementById('notice-media-current');
       const mediaLabel = document.getElementById('notice-media-current-label');
       if (mediaLabel) mediaLabel.textContent = `${data.mediaType === 'video' ? '🎬 Video' : '🎵 Audio'} link detected — will play in the article modal`;
@@ -1323,8 +1325,8 @@ window.postNotice = async function () {
 
   const mediaInput = document.getElementById('notice-media');
   const removeMediaBox = document.getElementById('notice-media-remove');
-  const extractedMediaUrl = document.getElementById('notice-extracted-media-url').value;
-  const extractedMediaType = document.getElementById('notice-extracted-media-type').value;
+  const extractedMediaUrl = document.getElementById('notice-extracted-media-url')?.value || '';
+  const extractedMediaType = document.getElementById('notice-extracted-media-type')?.value || '';
   if (mediaInput?.files.length) {
     fd.append('newsMedia', mediaInput.files[0]);
   } else if (extractedMediaUrl && extractedMediaType) {
@@ -1352,9 +1354,12 @@ window.postNotice = async function () {
       document.getElementById('notice-content').value = '';
       imgInput.value = '';
       if (mediaInput) mediaInput.value = '';
-      document.getElementById('notice-media-current').style.display = 'none';
-      document.getElementById('notice-extracted-media-url').value = '';
-      document.getElementById('notice-extracted-media-type').value = '';
+      const mediaCurrentReset = document.getElementById('notice-media-current');
+      if (mediaCurrentReset) mediaCurrentReset.style.display = 'none';
+      const extractedUrlReset = document.getElementById('notice-extracted-media-url');
+      const extractedTypeReset = document.getElementById('notice-extracted-media-type');
+      if (extractedUrlReset) extractedUrlReset.value = '';
+      if (extractedTypeReset) extractedTypeReset.value = '';
       document.getElementById('notice-link-url').value = '';
       document.getElementById('notice-extracted-image').value = '';
       document.getElementById('notice-video-url').value = '';
@@ -1410,8 +1415,14 @@ window.editNotice = async function (id) {
     const mediaCurrent = document.getElementById('notice-media-current');
     const mediaLabel = document.getElementById('notice-media-current-label');
     const removeMediaBox = document.getElementById('notice-media-remove');
+    const extractedUrlField = document.getElementById('notice-extracted-media-url');
+    const extractedTypeField = document.getElementById('notice-extracted-media-type');
     if (mediaInput) mediaInput.value = '';
     if (removeMediaBox) removeMediaBox.checked = false;
+    // Clear any leftover "paste link" extraction from a previous, unrelated edit —
+    // the fields below reflect the real article's saved media, not a stale draft.
+    if (extractedUrlField) extractedUrlField.value = '';
+    if (extractedTypeField) extractedTypeField.value = '';
     if (a.mediaType === 'video' || a.mediaType === 'audio') {
       if (mediaLabel) mediaLabel.textContent = `${a.mediaType === 'video' ? '🎬 Video' : '🎵 Audio'} file attached`;
       if (mediaCurrent) mediaCurrent.style.display = 'block';
@@ -1428,25 +1439,33 @@ window.editNotice = async function (id) {
 };
 
 window.cancelNoticeEdit = function () {
-  document.getElementById('notice-edit-id').value = '';
-  document.getElementById('notice-title').value = '';
-  document.getElementById('notice-excerpt').value = '';
-  document.getElementById('notice-content').value = '';
-  document.getElementById('notice-image').value = '';
-  document.getElementById('notice-media').value = '';
-  document.getElementById('notice-media-current').style.display = 'none';
-  document.getElementById('notice-media-remove').checked = false;
-  document.getElementById('notice-category').value = 'announcement';
-  document.getElementById('notice-publish-now').checked = true;
-  document.getElementById('notice-submit-btn').textContent = 'Post Notice';
-  document.getElementById('notice-cancel-btn').style.display = 'none';
-  document.getElementById('notice-link-url').value = '';
-  document.getElementById('notice-extracted-image').value = '';
-  document.getElementById('notice-video-url').value = '';
-  document.getElementById('notice-extracted-media-url').value = '';
-  document.getElementById('notice-extracted-media-type').value = '';
-  document.getElementById('notice-link-preview').style.display = 'none';
-  document.getElementById('notice-link-status').textContent = '';
+  const setVal = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
+  setVal('notice-edit-id', '');
+  setVal('notice-title', '');
+  setVal('notice-excerpt', '');
+  setVal('notice-content', '');
+  setVal('notice-image', '');
+  setVal('notice-media', '');
+  const mediaCurrent = document.getElementById('notice-media-current');
+  if (mediaCurrent) mediaCurrent.style.display = 'none';
+  const removeMediaBox = document.getElementById('notice-media-remove');
+  if (removeMediaBox) removeMediaBox.checked = false;
+  setVal('notice-category', 'announcement');
+  const publishNow = document.getElementById('notice-publish-now');
+  if (publishNow) publishNow.checked = true;
+  const submitBtn = document.getElementById('notice-submit-btn');
+  if (submitBtn) submitBtn.textContent = 'Post Notice';
+  const cancelBtn = document.getElementById('notice-cancel-btn');
+  if (cancelBtn) cancelBtn.style.display = 'none';
+  setVal('notice-link-url', '');
+  setVal('notice-extracted-image', '');
+  setVal('notice-video-url', '');
+  setVal('notice-extracted-media-url', '');
+  setVal('notice-extracted-media-type', '');
+  const linkPreview = document.getElementById('notice-link-preview');
+  if (linkPreview) linkPreview.style.display = 'none';
+  const linkStatus = document.getElementById('notice-link-status');
+  if (linkStatus) linkStatus.textContent = '';
 };
 
 window.publishNoticeAdmin = async function (id) {
