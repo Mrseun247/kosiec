@@ -99,6 +99,10 @@ router.post('/extract-link', protect, authorize('super_admin', 'admin', 'staff')
 
     const youtubeMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([\w-]+)/i);
     const vimeoMatch = url.match(/vimeo\.com\/(\d+)/i);
+    // Cloudinary's own hosted player embed page — a different link format from the
+    // direct file URL handled further below (that one has no oEmbed-style page of
+    // its own to embed; this one is explicitly built to be iframed, like YouTube/Vimeo).
+    const cloudinaryPlayerMatch = /player\.cloudinary\.com\/embed\/\?/i.test(url);
 
     // ── YouTube ──────────────────────────────────────────────
     if (youtubeMatch) {
@@ -133,6 +137,14 @@ router.post('/extract-link', protect, authorize('super_admin', 'admin', 'staff')
       return res.json({
         success: true,
         data: { isVideo: true, videoUrl: url, title, excerpt: '', image },
+      });
+    }
+
+    // ── Cloudinary player embed page ────────────────────────
+    if (cloudinaryPlayerMatch) {
+      return res.json({
+        success: true,
+        data: { isVideo: true, isEmbedPlayer: true, videoUrl: url, title: '', excerpt: '', image: '' },
       });
     }
 

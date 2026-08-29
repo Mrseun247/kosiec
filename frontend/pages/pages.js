@@ -1274,6 +1274,8 @@ window.extractNoticeFromLink = async function () {
         embed = `<div style="position:relative;padding-top:56.25%;height:0;overflow:hidden;border-radius:8px;margin-bottom:16px;"><iframe src="https://www.youtube.com/embed/${youtubeMatch[1]}" title="${safeTitle}" style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>`;
       } else if (vimeoMatch) {
         embed = `<div style="position:relative;padding-top:56.25%;height:0;overflow:hidden;border-radius:8px;margin-bottom:16px;"><iframe src="https://player.vimeo.com/video/${vimeoMatch[1]}" title="${safeTitle}" style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe></div>`;
+      } else if (data.isEmbedPlayer) {
+        embed = `<div style="position:relative;padding-top:56.25%;height:0;overflow:hidden;border-radius:8px;margin-bottom:16px;"><iframe src="${data.videoUrl || url}" title="${safeTitle}" style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>`;
       }
       document.getElementById('notice-content').value = embed + (data.excerpt ? `<p>${data.excerpt}</p>` : '');
     } else {
