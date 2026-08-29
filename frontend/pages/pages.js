@@ -1249,7 +1249,20 @@ window.extractNoticeFromLink = async function () {
     if (data.title) document.getElementById('notice-title').value = data.title;
     if (data.excerpt) document.getElementById('notice-excerpt').value = data.excerpt;
 
-    if (data.isVideo) {
+    if (data.isDirectMedia) {
+      // A direct video/audio file link (e.g. copied from Cloudinary) — plays via the
+      // same mediaType/mediaUrl mechanism a real upload uses, in #modal-media, not
+      // embedded into the content body like a YouTube/Vimeo iframe is.
+      document.getElementById('notice-extracted-media-url').value = data.mediaUrl;
+      document.getElementById('notice-extracted-media-type').value = data.mediaType;
+      const mediaCurrent = document.getElementById('notice-media-current');
+      const mediaLabel = document.getElementById('notice-media-current-label');
+      if (mediaLabel) mediaLabel.textContent = `${data.mediaType === 'video' ? '🎬 Video' : '🎵 Audio'} link detected — will play in the article modal`;
+      if (mediaCurrent) mediaCurrent.style.display = 'block';
+      if (!document.getElementById('notice-content').value.trim()) {
+        document.getElementById('notice-content').value = data.excerpt ? `<p>${data.excerpt}</p>` : '<p></p>';
+      }
+    } else if (data.isVideo) {
       document.getElementById('notice-video-url').value = data.videoUrl || url;
       const safeTitle = (data.title || 'Video').replace(/"/g, '&quot;');
       const youtubeMatch = (data.videoUrl || url).match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]+)/i);
@@ -1310,8 +1323,16 @@ window.postNotice = async function () {
 
   const mediaInput = document.getElementById('notice-media');
   const removeMediaBox = document.getElementById('notice-media-remove');
+  const extractedMediaUrl = document.getElementById('notice-extracted-media-url').value;
+  const extractedMediaType = document.getElementById('notice-extracted-media-type').value;
   if (mediaInput?.files.length) {
     fd.append('newsMedia', mediaInput.files[0]);
+  } else if (extractedMediaUrl && extractedMediaType) {
+    // A direct video/audio link was extracted (e.g. pasted from Cloudinary) rather
+    // than uploaded as a file — send it as plain fields; the backend keeps whatever
+    // it's given here as-is since there's no req.files.newsMedia to override it.
+    fd.append('mediaUrl', extractedMediaUrl);
+    fd.append('mediaType', extractedMediaType);
   } else if (removeMediaBox?.checked) {
     fd.append('removeMedia', 'true');
   }
@@ -1332,6 +1353,8 @@ window.postNotice = async function () {
       imgInput.value = '';
       if (mediaInput) mediaInput.value = '';
       document.getElementById('notice-media-current').style.display = 'none';
+      document.getElementById('notice-extracted-media-url').value = '';
+      document.getElementById('notice-extracted-media-type').value = '';
       document.getElementById('notice-link-url').value = '';
       document.getElementById('notice-extracted-image').value = '';
       document.getElementById('notice-video-url').value = '';
@@ -1420,6 +1443,8 @@ window.cancelNoticeEdit = function () {
   document.getElementById('notice-link-url').value = '';
   document.getElementById('notice-extracted-image').value = '';
   document.getElementById('notice-video-url').value = '';
+  document.getElementById('notice-extracted-media-url').value = '';
+  document.getElementById('notice-extracted-media-type').value = '';
   document.getElementById('notice-link-preview').style.display = 'none';
   document.getElementById('notice-link-status').textContent = '';
 };

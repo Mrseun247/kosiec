@@ -136,6 +136,24 @@ router.post('/extract-link', protect, authorize('super_admin', 'admin', 'staff')
       });
     }
 
+    // ── Direct video/audio file link (e.g. a Cloudinary URL copied from its
+    // dashboard) — recognized by file extension, or by Cloudinary's own
+    // /video/upload/ path segment (which it uses for both video and audio
+    // resources). Routed through the same mediaType/mediaUrl fields a real
+    // upload uses, so it plays in the article modal instead of falling
+    // through to the generic webpage scrape below.
+    const mediaExtMatch = url.match(/\.(mp4|webm|mov|m4v|mp3|wav|m4a|ogg|aac)(\?|$)/i);
+    const isCloudinaryMedia = /res\.cloudinary\.com\/[^/]+\/video\/upload\//i.test(url);
+    if (mediaExtMatch || isCloudinaryMedia) {
+      const audioExts = new Set(['mp3', 'wav', 'm4a', 'ogg', 'aac']);
+      const ext = mediaExtMatch ? mediaExtMatch[1].toLowerCase() : null;
+      const mediaType = ext && audioExts.has(ext) ? 'audio' : 'video';
+      return res.json({
+        success: true,
+        data: { isVideo: true, isDirectMedia: true, mediaType, mediaUrl: url, title: '', excerpt: '', image: '' },
+      });
+    }
+
     // ── Generic article — scrape Open Graph / basic meta tags ──
     const pageRes = await fetch(url, {
       headers: { 'User-Agent': 'Mozilla/5.0 (compatible; KOSIECBot/1.0; +https://kosiec.gov.ng)' },
